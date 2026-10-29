@@ -1,20 +1,36 @@
-"""Simulation panel: stands in for the machine's hardware (NFC reader and
-ingredient sensors for now)."""
+"""Simulation panel: stands in for the machine's hardware and outside
+services (NFC reader, ingredient sensors, weather API and clock)."""
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from app import db
-from app.models import Ingredient, NfcCard
-from app.services import auth, inventory
+from app.models import Ingredient, NfcCard, SystemState
+from app.services import auth, clock, inventory
+from app.services import weather as weather_service
 
 simulation_bp = Blueprint("simulation", __name__, url_prefix="/simulation")
+
+
+@simulation_bp.app_context_processor
+def inject_simulated_clock():
+    """
+    Purpose: Gives every template the simulated time, so the status bar can
+        show it instead of the real time.
+
+    Args:
+        None
+
+    Returns:
+        dict: Template variable sim_time ("HH:MM" or None).
+    """
+    return {"sim_time": clock.get_time_override()}
 
 
 @simulation_bp.route("/")
 def panel():
     """
-    Purpose: Shows the simulation panel with the demo NFC cards to tap and
-        the ingredient stock levels to change.
+    Purpose: Shows the simulation panel: NFC cards, ingredient stock,
+        weather and time of day.
 
     Args:
         None
@@ -22,12 +38,23 @@ def panel():
     Returns:
         str: The rendered simulation panel.
     """
-    cards = NfcCard.query.order_by(NfcCard.is_master, NfcCard.uid).all()
+    now = clock.now()
+    try:
+        current_weather = weather_service.get_weather(now)
+    except weather_service.WeatherUnavailableError:
+        current_weather = None
+
     return render_template(
         "simulation.html",
-        cards=cards,
+        cards=NfcCard.query.order_by(NfcCard.is_master, NfcCard.uid).all(),
         ingredients=inventory.get_all_ingredients(),
         is_low=inventory.is_below_threshold,
+        state=SystemState.get(),
+        conditions=weather_service.CONDITIONS,
+        weather_text=weather_service.describe(current_weather),
+        now_text=now.strftime("%H:%M"),
+        min_temp=weather_service.MIN_TEMP_C,
+        max_temp=weather_service.MAX_TEMP_C,
     )
 
 
@@ -87,3 +114,54 @@ def set_stock():
             "success",
         )
     return redirect(url_for("simulation.panel", _anchor="stock"))
+
+
+@simulation_bp.route("/weather", methods=["POST"])
+def set_weather():
+    """
+    Purpose: Simulates the weather API: auto/manual mode, condition,
+        temperature and the "Weather API down" switch (FR-17, FR-56).
+
+    Args:
+        None
+
+    Returns:
+        Response: Redirect back to the weather section of the panel.
+    """
+    try:
+        weather_service.update_settings(
+            request.form.get("mode"),
+            request.form.get("condition"),
+            request.form.get("temperature"),
+            online=request.form.get("api_down") != "on",
+        )
+    except weather_service.WeatherSettingsError as error:
+        flash(str(error), "error")
+    else:
+        flash("Weather settings saved.", "success")
+    return redirect(url_for("simulation.panel", _anchor="weather"))
+
+
+@simulation_bp.route("/time", methods=["POST"])
+def set_time():
+    """
+    Purpose: Sets a simulated time of day for recommendations (FR-16), or
+        goes back to the real time when action=real is sent.
+
+    Args:
+        None
+
+    Returns:
+        Response: Redirect back to the time section of the panel.
+    """
+    use_real_time = request.form.get("action") == "real"
+    text = request.form.get("time")
+    try:
+        if not use_real_time:
+            clock.parse_time(text)  # an empty or invalid time is an error, not "real time"
+        override = clock.set_time_override(None if use_real_time else text)
+    except clock.ClockSettingsError as error:
+        flash(str(error), "error")
+    else:
+        flash(f"Time set to {override}." if override else "Using the real time again.", "success")
+    return redirect(url_for("simulation.panel", _anchor="time"))

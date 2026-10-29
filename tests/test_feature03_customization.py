@@ -337,7 +337,8 @@ def test_order_price_matches_preview(seeded_app, seeded_client):
     seeded_client.post(f"/drink/{drink_id(seeded_app, 'Latte')}/order", data=form)
 
     with seeded_app.app_context():
-        assert Transaction.query.one().amount_cents == shown["price_cents"] == 470
+        new_order = Transaction.query.filter_by(status=Transaction.STATUS_PENDING).one()
+        assert new_order.amount_cents == shown["price_cents"] == 470
 
 
 # ---------------------------------------------------------------------------

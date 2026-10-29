@@ -6,28 +6,42 @@
 <div class="page-header">
   <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
   <h1>Menu</h1>
+  <span class="menu-context muted">{{ weather_text }} · {{ period|capitalize }}</span>
+  {% if current_user %}
+    <a class="btn-back btn-shortcut" href="{{ url_for('customer.recipe_list') }}">⭐ My recipes</a>
+  {% endif %}
 </div>
 
 {% if not categories %}
   <p class="muted">The menu is empty. Run <code>python seed.py</code> to load the demo drinks.</p>
 {% else %}
-  {# FR-11: one touch per tab; tabs are plain links so they work without JS #}
+  {# FR-11: one touch per tab; tabs are plain links so they work without JS.
+     "For you" (default) lists every available drink by recommendation score. #}
   <nav class="tabs" aria-label="Drink categories">
+    <a class="tab{% if selected is none %} tab-active{% endif %}"
+       href="{{ url_for('customer.menu') }}"
+       {% if selected is none %}aria-current="page"{% endif %}>⭐ For you</a>
     {% for category in categories %}
-      <a class="tab{% if category.id == selected.id %} tab-active{% endif %}"
+      <a class="tab{% if selected and category.id == selected.id %} tab-active{% endif %}"
          href="{{ url_for('customer.menu', category=category.id) }}"
-         {% if category.id == selected.id %}aria-current="page"{% endif %}>{{ category.name }}</a>
+         {% if selected and category.id == selected.id %}aria-current="page"{% endif %}>{{ category.name }}</a>
     {% endfor %}
   </nav>
 
-  {% if drinks %}
+  {# FR-56: recommendations keep working without weather #}
+  {% if weather_note %}<p class="weather-note" role="status">{{ weather_note }}</p>{% endif %}
+
+  {% if entries %}
     <div class="drink-grid">
-      {% for drink in drinks %}
-        {% if available[drink.id] %}
-          <a class="drink-card" href="{{ url_for('customer.drink_detail', drink_id=drink.id) }}">
+      {% for entry in entries %}
+        {% set drink = entry.drink %}
+        {% if entry.available %}
+          <a class="drink-card{% if entry.top %} drink-top{% endif %}" href="{{ url_for('customer.drink_detail', drink_id=drink.id) }}">
+            {% if entry.top %}<span class="top-badge">⭐ Top pick</span>{% endif %}
             <span class="drink-icon">{{ drink.icon }}</span>
             <span class="drink-name">{{ drink.name }}</span>
             <span class="drink-price">{{ drink.base_price_cents|euro }}</span>
+            {% if entry.top and entry.rec.reason %}<span class="top-reason">{{ entry.rec.reason }}</span>{% endif %}
           </a>
         {% else %}
           {# FR-14, FR-26–28: base ingredient below threshold, cannot be opened #}
@@ -40,7 +54,7 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="muted">No drinks in this category right now.</p>
+    <p class="muted">No drinks available right now.</p>
   {% endif %}
 {% endif %}
 {% endblock %}

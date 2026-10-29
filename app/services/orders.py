@@ -13,7 +13,7 @@ from sqlalchemy import update
 
 from app import db
 from app.models import Transaction, utcnow
-from app.services import customization, inventory
+from app.services import customization, inventory, preferences
 
 
 class OrderError(Exception):
@@ -183,4 +183,8 @@ def dispense_order(order):
     order.status = Transaction.STATUS_COMPLETED
     order.completed_at = utcnow()
     db.session.commit()
+
+    if order.user is not None:
+        # Feature 6: learn preferred milk/strength/temperature from history
+        preferences.update_preferences(order.user)
     return order

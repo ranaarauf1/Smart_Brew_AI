@@ -26,8 +26,15 @@ Payment test card numbers (fake processor, implemented with feature 7):
     4242 4242 4242 4242   approved
     4000 0000 0000 0002   declined: card declined
     4000 0000 0000 9995   declined: insufficient funds
+
+Demo order history (for recommendations, feature 6):
+    Alice: 3x Flat White and 1x Latte, oat milk, mostly strong
+    Bob:   no orders (shows recommendations from time and weather only)
 ===========================================================================
 """
+
+import uuid
+from datetime import timedelta
 
 from app import create_app, db
 from app.models import (
@@ -39,10 +46,13 @@ from app.models import (
     NfcCard,
     PrepaidCard,
     SystemState,
+    Transaction,
     User,
     UserPreference,
     WasteBin,
+    utcnow,
 )
+from app.services import customization, orders, preferences
 from app.services.security import hash_secret
 
 TECHNICIAN_PIN = "1234"
@@ -197,6 +207,16 @@ CUSTOMIZATION_OPTIONS = [
     (CustomizationOption.GROUP_SYRUP, "Caramel", 50, "Caramel syrup", 10, False),
 ]
 
+# Alice's past completed orders: (days ago, drink, {group: option name}).
+# Gives her a history for recommendations and a preference profile
+# (most frequent: oat milk, strong, hot). Bob has no history.
+DEMO_ORDER_HISTORY = [
+    (1, "Flat White", {"milk": "Oat milk", "strength": "Strong", "temperature": "Hot"}),
+    (2, "Flat White", {"milk": "Oat milk", "strength": "Strong", "temperature": "Hot"}),
+    (4, "Latte", {"milk": "Oat milk", "strength": "Regular", "temperature": "Hot"}),
+    (6, "Flat White", {"milk": "Oat milk", "strength": "Strong", "temperature": "Hot"}),
+]
+
 # (name, email, password, nfc uid)
 DEMO_USERS = [
     ("Alice Example", "alice@demo.com", "Alice2026!", "04A1B2C3"),
@@ -339,6 +359,45 @@ def seed_machine_state():
     ))
 
 
+def seed_order_history():
+    """
+    Purpose: Gives Alice a few past completed orders so recommendations
+        ("Popular with you") and her preference profile (oat milk, strong)
+        can be shown straight away. Past orders do not change the stock.
+
+    Args:
+        None
+
+    Returns:
+        int: Number of orders created.
+    """
+    alice = User.query.filter_by(email="alice@demo.com").one()
+    now = utcnow()
+    for days_ago, drink_name, choices in DEMO_ORDER_HISTORY:
+        drink = Drink.query.filter_by(name=drink_name).one()
+        data = {
+            group: CustomizationOption.query.filter_by(group=group, name=option_name).one().id
+            for group, option_name in choices.items()
+        }
+        selection, errors = customization.parse_selection(drink, data)
+        assert not errors, errors  # demo data must always be valid
+        needs = customization.compute_ingredients(drink, selection)
+        created = now - timedelta(days=days_ago)
+        db.session.add(Transaction(
+            user=alice,
+            drink=drink,
+            customizations=orders.build_order_details(drink, selection, needs),
+            amount_cents=customization.compute_price(drink, selection),
+            status=Transaction.STATUS_COMPLETED,
+            idempotency_key=uuid.uuid4().hex,
+            created_at=created,
+            completed_at=created,
+        ))
+    db.session.commit()
+    preferences.update_preferences(alice)
+    return len(DEMO_ORDER_HISTORY)
+
+
 def seed_database():
     """
     Purpose: Drops all tables, recreates them and fills in the demo data.
@@ -358,6 +417,7 @@ def seed_database():
     seed_users_and_cards()
     seed_machine_state()
     db.session.commit()
+    seed_order_history()
     return drink_count
 
 

@@ -53,9 +53,10 @@ def test_menu_shows_all_category_tabs_in_order(seeded_client):
     assert positions == sorted(positions)
 
 
-def test_menu_defaults_to_first_category(seeded_client):
+def test_menu_defaults_to_for_you_tab(seeded_client):
     """
-    Purpose: Without a category parameter, the first category's drinks show.
+    Purpose: Without a category parameter, the "For you" tab (feature 6) is
+        active and lists drinks from every category.
 
     Args:
         seeded_client (FlaskClient): Client for the seeded app.
@@ -63,7 +64,25 @@ def test_menu_defaults_to_first_category(seeded_client):
     Returns:
         None
     """
-    response = seeded_client.get("/menu")
+    html = seeded_client.get("/menu").get_data(as_text=True)
+
+    assert re.search(r'class="tab tab-active"\s+href="/menu"', html)
+    for name in ("Espresso", "Cappuccino", "Chai Latte", "Cold Brew"):
+        assert f'class="drink-name">{name}<' in html
+
+
+def test_menu_first_category_tab(seeded_app, seeded_client):
+    """
+    Purpose: The first category tab shows only that category's drinks.
+
+    Args:
+        seeded_app (Flask): Seeded test application.
+        seeded_client (FlaskClient): Client for it.
+
+    Returns:
+        None
+    """
+    response = seeded_client.get(f"/menu?category={category_id(seeded_app, 'Espresso Classics')}")
 
     assert response.status_code == 200
     for name in (b"Espresso", b"Doppio", b"Americano"):

@@ -21,7 +21,12 @@
             <button type="submit" class="btn-status">Log out</button>
           </form>
         {% endif %}
-        <span id="clock" class="clock"></span>
+        {% if sim_time %}
+          {# Simulated time of day from the Simulation panel (feature 6) #}
+          <span id="clock" class="clock clock-sim" data-fixed="1">{{ sim_time }} <small>SIM</small></span>
+        {% else %}
+          <span id="clock" class="clock"></span>
+        {% endif %}
       </div>
     </header>
 
@@ -39,6 +44,9 @@
     // Status-bar clock, refreshed every second
     (function () {
       var el = document.getElementById("clock");
+      if (el.dataset.fixed) {
+        return; // simulated time is set: show it unchanged
+      }
 
       /**
        * Purpose: Shows the current time (HH:MM) in the status bar.

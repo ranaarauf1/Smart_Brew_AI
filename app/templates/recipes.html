@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}My recipes – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <h1>My recipes</h1>
+  <a class="btn-back btn-shortcut" href="{{ url_for('customer.menu') }}">☕ Menu</a>
+</div>
+
+{% if not statuses %}
+  <div class="panel empty-state">
+    <p class="big">No saved recipes yet</p>
+    <p class="muted">Customize a drink and tap "Save as recipe" to order it with one touch next time.</p>
+    <a class="btn btn-primary btn-small" href="{{ url_for('customer.menu') }}">Go to the menu</a>
+  </div>
+{% else %}
+  <div class="recipe-list">
+    {% for status in statuses %}
+      {% set recipe = status.recipe %}
+      <article class="recipe-card panel{% if not status.available %} recipe-disabled{% endif %}">
+        <div class="recipe-main">
+          <span class="drink-icon">{{ recipe.drink.icon }}</span>
+          <div class="recipe-text">
+            <p class="recipe-name">{{ recipe.name }}</p>
+            <p class="muted">{{ recipe.drink.name }} · {{ status.summary }}</p>
+            <p class="drink-price">{{ status.price_cents|euro }}</p>
+            {# FR-15: show why a recipe cannot be ordered right now #}
+            {% if not status.available %}<p class="unavailable-label">{{ status.reason }}</p>{% endif %}
+          </div>
+
+          {# One-touch ordering (FR-15, NFR-24) #}
+          <form method="post" action="{{ url_for('customer.order_recipe', recipe_id=recipe.id) }}">
+            <button type="submit" class="btn btn-primary recipe-order"
+                    {% if not status.available %}disabled{% endif %}>Order</button>
+          </form>
+        </div>
+
+        <div class="recipe-actions">
+          <form class="rename-form" method="post" action="{{ url_for('customer.rename_recipe', recipe_id=recipe.id) }}">
+            <input type="text" name="name" value="{{ recipe.name }}" maxlength="{{ max_recipe_name }}"
+                   aria-label="New name for {{ recipe.name }}">
+            <button type="submit" class="btn btn-small">Rename</button>
+          </form>
+          <a class="btn btn-small" href="{{ url_for('customer.edit_recipe', recipe_id=recipe.id) }}">Edit options</a>
+
+          {# Delete asks for confirmation first, without JavaScript #}
+          <details class="delete-confirm">
+            <summary class="btn btn-small">Delete</summary>
+            <div class="delete-box">
+              <span>Really delete "{{ recipe.name }}"? <span class="muted">(Tap Delete again to keep it.)</span></span>
+              <form method="post" action="{{ url_for('customer.delete_recipe', recipe_id=recipe.id) }}">
+                <input type="hidden" name="confirm" value="yes">
+                <button type="submit" class="btn btn-small btn-danger">Yes, delete</button>
+              </form>
+            </div>
+          </details>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

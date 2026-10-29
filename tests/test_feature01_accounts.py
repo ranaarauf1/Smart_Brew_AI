@@ -629,7 +629,29 @@ def test_profile_requires_login(seeded_client):
 
 def test_profile_shows_name_card_and_empty_history(seeded_client, login):
     """
-    Purpose: The profile shows the user's name, linked card and empty history.
+    Purpose: The profile shows the user's name, linked card and, for a user
+        without orders (Bob), an empty history.
+
+    Args:
+        seeded_client (FlaskClient): Client for the seeded app.
+        login (callable): Login helper fixture.
+
+    Returns:
+        None
+    """
+    login(email="bob@demo.com", password="Bob2026!")
+
+    response = seeded_client.get("/profile")
+
+    assert response.status_code == 200
+    assert b"Bob Example" in response.data
+    assert b"04B2C3D4" in response.data
+    assert b"No orders yet." in response.data
+
+
+def test_profile_shows_seeded_order_history(seeded_client, login):
+    """
+    Purpose: Alice's seeded past orders appear on her profile.
 
     Args:
         seeded_client (FlaskClient): Client for the seeded app.
@@ -640,12 +662,11 @@ def test_profile_shows_name_card_and_empty_history(seeded_client, login):
     """
     login()
 
-    response = seeded_client.get("/profile")
+    html = seeded_client.get("/profile").get_data(as_text=True)
 
-    assert response.status_code == 200
-    assert b"Alice Example" in response.data
-    assert b"04A1B2C3" in response.data
-    assert b"No orders yet." in response.data
+    assert "No orders yet." not in html
+    assert html.count("Flat White") == 3
+    assert "Oat milk · Strong · Hot" in html
 
 
 def test_link_card_replaces_previous_card(seeded_app, seeded_client, login):

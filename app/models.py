@@ -520,9 +520,16 @@ class SystemState(db.Model):
 
     SINGLETON_ID = 1
 
+    WEATHER_AUTO = "auto"  # mock weather follows the time of day
+    WEATHER_MANUAL = "manual"  # values set on the Simulation panel
+
     id = db.Column(db.Integer, primary_key=True)
     network_online = db.Column(db.Boolean, nullable=False, default=True)
-    weather_online = db.Column(db.Boolean, nullable=False, default=True)
+    weather_online = db.Column(db.Boolean, nullable=False, default=True)  # FR-56 switch
+    weather_mode = db.Column(db.String(10), nullable=False, default=WEATHER_AUTO)
+    weather_condition = db.Column(db.String(10), nullable=False, default="cloudy")
+    weather_temp_c = db.Column(db.Float, nullable=False, default=12)
+    time_override = db.Column(db.String(5))  # "HH:MM" simulated time, None = real time
     admin_pin_hash = db.Column(db.String(128), nullable=False)  # bcrypt, NFR-09
     failed_pin_attempts = db.Column(db.Integer, nullable=False, default=0)
     locked_until = db.Column(db.DateTime)  # 15 min lockout after 5 wrong PINs (FR-43–52)

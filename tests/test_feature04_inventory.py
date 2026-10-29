@@ -236,7 +236,7 @@ def test_unavailable_drink_cannot_be_opened_for_ordering(seeded_app, seeded_clie
     assert order.status_code == 302 and "/menu" in order.headers["Location"]
     assert preview.status_code == 400
     with seeded_app.app_context():
-        assert Transaction.query.count() == 0
+        assert Transaction.query.filter_by(status=Transaction.STATUS_PENDING).count() == 0
 
 
 def test_stock_exactly_at_threshold_is_available(seeded_app):

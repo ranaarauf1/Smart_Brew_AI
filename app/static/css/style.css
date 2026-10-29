@@ -785,9 +785,200 @@ body {
   font-size: 13px;
 }
 
+/* ---------- Recommendations on the menu (feature 6) ---------- */
+
+.menu-context {
+  font-size: 17px;
+}
+
+.btn-shortcut {
+  margin-left: auto;
+}
+
+.weather-note {
+  margin: -8px 0 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff3e0;
+  color: var(--warn);
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.drink-card {
+  position: relative;
+}
+
+.drink-top {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.top-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.top-reason {
+  font-size: 15px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.clock-sim small {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--warn);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---------- Saved recipes (feature 5) ---------- */
+
+.recipe-save {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recipe-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.recipe-text {
+  flex: 1;
+}
+
+.recipe-text p {
+  margin: 0 0 4px;
+}
+
+.recipe-name {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.recipe-order {
+  min-height: 80px;
+  min-width: 140px;
+}
+
+.recipe-disabled .drink-icon,
+.recipe-disabled .recipe-name {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.recipe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.rename-form {
+  display: flex;
+  gap: 8px;
+}
+
+.rename-form input {
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font: inherit;
+  width: 220px;
+}
+
+.delete-confirm summary {
+  list-style: none;
+}
+
+.delete-confirm summary::-webkit-details-marker {
+  display: none;
+}
+
+.delete-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fdecea;
+}
+
+.btn-danger {
+  background: var(--error);
+  border-color: var(--error);
+  color: #fff;
+}
+
+.empty-state {
+  text-align: center;
+}
+
+/* ---------- Simulation: weather and time ---------- */
+
+.sim-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.radio-row label,
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  font-weight: 600;
+}
+
+.radio-row input,
+.switch-row input {
+  width: 26px;
+  height: 26px;
+}
+
 @media (max-width: 720px) {
   .button-grid {
     grid-template-columns: 1fr;
+  }
+
+  .recipe-main {
+    flex-wrap: wrap;
+  }
+
+  .rename-form input {
+    width: 100%;
   }
 
   .customize {

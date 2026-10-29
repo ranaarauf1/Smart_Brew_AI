@@ -66,6 +66,25 @@
     </div>
     <button type="submit" id="confirm-button" class="btn btn-primary btn-wide"
             {% if not (preview.ok and preview.can_order) %}disabled{% endif %}>Confirm order</button>
+
+    {# Feature 5: save these choices as a recipe (logged-in users only) #}
+    <div class="recipe-save">
+      {% if recipe %}
+        <p class="muted">Editing recipe <strong>{{ recipe.name }}</strong></p>
+        <button type="submit" class="btn btn-wide"
+                formaction="{{ url_for('customer.update_recipe', recipe_id=recipe.id) }}">Update recipe</button>
+      {% elif current_user %}
+        <label class="field">
+          <span>Recipe name</span>
+          <input type="text" name="recipe_name" maxlength="{{ max_recipe_name }}"
+                 value="{{ recipe_name }}" placeholder="e.g. My morning latte">
+        </label>
+        <button type="submit" class="btn btn-wide"
+                formaction="{{ url_for('customer.save_recipe', drink_id=drink.id) }}">Save as recipe</button>
+      {% else %}
+        <p class="form-hint"><a href="{{ url_for('auth.login') }}">Log in</a> to save your recipes.</p>
+      {% endif %}
+    </div>
   </aside>
 </form>
 {% endblock %}

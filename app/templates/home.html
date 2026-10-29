@@ -16,6 +16,10 @@
       Menu
     </a>
     {% if current_user %}
+      <a class="btn" href="{{ url_for('customer.recipe_list') }}">
+        <span class="btn-icon">⭐</span>
+        My recipes
+      </a>
       <a class="btn" href="{{ url_for('auth.profile') }}">
         <span class="btn-icon">👤</span>
         My profile

@@ -66,4 +66,53 @@
     <p class="muted">No ingredients. Run <code>python seed.py</code> first.</p>
   {% endif %}
 </section>
+
+{% if state %}
+<div class="panel-grid sim-section">
+  <section class="panel" id="weather">
+    <h2>🌦️ Weather</h2>
+    <p class="muted">Service returns: <strong>{{ weather_text }}</strong></p>
+    <form class="sim-form" method="post" action="{{ url_for('simulation.set_weather') }}">
+      <div class="radio-row">
+        <label><input type="radio" name="mode" value="auto" {% if state.weather_mode == 'auto' %}checked{% endif %}> Auto (by time of day)</label>
+        <label><input type="radio" name="mode" value="manual" {% if state.weather_mode == 'manual' %}checked{% endif %}> Manual</label>
+      </div>
+      <label class="field">
+        <span>Condition (manual)</span>
+        <select name="condition">
+          {% for condition in conditions %}
+            <option value="{{ condition }}" {% if state.weather_condition == condition %}selected{% endif %}>{{ condition|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field">
+        <span>Temperature °C (manual, {{ min_temp }} to {{ max_temp }})</span>
+        <input type="number" name="temperature" min="{{ min_temp }}" max="{{ max_temp }}" step="0.5"
+               value="{{ state.weather_temp_c|round(1) }}">
+      </label>
+      {# FR-56: simulate the weather API failing #}
+      <label class="switch-row">
+        <input type="checkbox" name="api_down" {% if not state.weather_online %}checked{% endif %}>
+        <span>Weather API down</span>
+      </label>
+      <button type="submit" class="btn btn-primary btn-small">Save weather</button>
+    </form>
+  </section>
+
+  <section class="panel" id="time">
+    <h2>🕒 Time of day</h2>
+    <p class="muted">Machine time: <strong>{{ now_text }}</strong>{% if state.time_override %} (simulated){% else %} (real){% endif %}</p>
+    <form class="sim-form" method="post" action="{{ url_for('simulation.set_time') }}">
+      <label class="field">
+        <span>Simulated time</span>
+        <input type="time" name="time" value="{{ state.time_override or now_text }}">
+      </label>
+      <div class="radio-row">
+        <button type="submit" name="action" value="set" class="btn btn-primary btn-small">Set time</button>
+        <button type="submit" name="action" value="real" class="btn btn-small">Use real time</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endif %}
 {% endblock %}
