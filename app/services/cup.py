@@ -109,17 +109,3 @@ def describe_cup(drink, selection, needs):
         "description": f"{'Glass' if iced else 'Cup'}: {parts or 'empty'}"
                        + (", with ice" if iced else ""),
     }
-
-
-def layer_kinds():
-    """
-    Purpose: Lists every layer kind in drawing order (bottom to top), for
-        the template that draws all of them and hides the empty ones.
-
-    Args:
-        None
-
-    Returns:
-        tuple[str, ...]: LAYER_ORDER.
-    """
-    return LAYER_ORDER

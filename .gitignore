@@ -15,9 +15,6 @@ data/*
 *.db
 *.sqlite3
 
-# Generated QR receipt images
-app/static/qr/
-
 # Secrets and editors
 .env
 .vscode/
