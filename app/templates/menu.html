@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Menu – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <h1>Menu</h1>
+</div>
+
+{% if not categories %}
+  <p class="muted">The menu is empty. Run <code>python seed.py</code> to load the demo drinks.</p>
+{% else %}
+  {# FR-11: one touch per tab; tabs are plain links so they work without JS #}
+  <nav class="tabs" aria-label="Drink categories">
+    {% for category in categories %}
+      <a class="tab{% if category.id == selected.id %} tab-active{% endif %}"
+         href="{{ url_for('customer.menu', category=category.id) }}"
+         {% if category.id == selected.id %}aria-current="page"{% endif %}>{{ category.name }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if drinks %}
+    <div class="drink-grid">
+      {% for drink in drinks %}
+        {% if available[drink.id] %}
+          <a class="drink-card" href="{{ url_for('customer.drink_detail', drink_id=drink.id) }}">
+            <span class="drink-icon">{{ drink.icon }}</span>
+            <span class="drink-name">{{ drink.name }}</span>
+            <span class="drink-price">{{ drink.base_price_cents|euro }}</span>
+          </a>
+        {% else %}
+          {# FR-14, FR-26–28: base ingredient below threshold, cannot be opened #}
+          <div class="drink-card drink-unavailable" aria-disabled="true">
+            <span class="drink-icon">{{ drink.icon }}</span>
+            <span class="drink-name">{{ drink.name }}</span>
+            <span class="unavailable-label">Not available</span>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No drinks in this category right now.</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

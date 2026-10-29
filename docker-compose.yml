@@ -1,0 +1,17 @@
+services:
+  smartbrew:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 5000
+      # Override for anything beyond a local demo
+      SECRET_KEY: ${SECRET_KEY:-docker-dev-secret-change-me}
+    volumes:
+      # Database and email outbox survive container restarts
+      - smartbrew-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  smartbrew-data:

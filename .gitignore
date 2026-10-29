@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+
+# Local data: SQLite database and email outbox (keep the folder itself)
+data/*
+!data/.gitkeep
+*.db
+*.sqlite3
+
+# Generated QR receipt images
+app/static/qr/
+
+# Secrets and editors
+.env
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

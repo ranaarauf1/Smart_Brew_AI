@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Simulation panel – SmartBrew AI{% endblock %}
+
+{% block status %}<span class="badge-sim">SIMULATION</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <h1>Simulation panel</h1>
+</div>
+<p class="muted">Stands in for the machine's hardware. More switches arrive with later features.</p>
+
+<section class="panel panel-wide sim-section">
+  <h2>📶 NFC reader</h2>
+  <p class="muted">Pick a demo card and tap it on the reader.</p>
+
+  {% if cards %}
+    <div class="card-list">
+      {% for card in cards %}
+        <form class="card-row" method="post" action="{{ url_for('simulation.nfc_tap') }}">
+          <input type="hidden" name="uid" value="{{ card.uid }}">
+          <div class="card-info">
+            <span class="card-uid">{{ card.uid }}</span>
+            <span class="card-label">{{ card.label }}</span>
+            <span class="card-owner muted">
+              {% if card.is_master %}Technician master card
+              {% elif card.user %}Linked to {{ card.user.name }}
+              {% else %}Not linked{% endif %}
+              {% if not card.is_active %} · inactive{% endif %}
+            </span>
+          </div>
+          <button type="submit" class="btn btn-primary btn-small">Tap</button>
+        </form>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No demo cards. Run <code>python seed.py</code> first.</p>
+  {% endif %}
+</section>
+
+<section class="panel panel-wide sim-section" id="stock">
+  <h2>🧪 Ingredient stock</h2>
+  <p class="muted">Set a level to test blocking. Below the minimum, drinks and options using it are blocked.</p>
+
+  {% if ingredients %}
+    <div class="stock-list">
+      {% for ingredient in ingredients %}
+        {% set low = is_low(ingredient) %}
+        <form class="stock-row{% if low %} stock-low{% endif %}" method="post" action="{{ url_for('simulation.set_stock') }}">
+          <input type="hidden" name="ingredient_id" value="{{ ingredient.id }}">
+          <div class="stock-info">
+            <span class="stock-name">{{ ingredient.name }}{% if low %} <span class="badge-low">LOW</span>{% endif %}</span>
+            <span class="muted stock-numbers">{{ ingredient.stock_level|round(1) }} / {{ ingredient.capacity|round(0)|int }} {{ ingredient.unit }} · min {{ ingredient.min_threshold|round(0)|int }}</span>
+            <span class="stock-bar"><span style="width: {{ (100 * ingredient.stock_level / ingredient.capacity)|round(0)|int }}%"></span></span>
+          </div>
+          <input class="stock-input" type="number" name="level" min="0" max="{{ ingredient.capacity }}" step="any"
+                 value="{{ ingredient.stock_level|round(1) }}" aria-label="New level for {{ ingredient.name }}">
+          <button type="submit" class="btn btn-primary btn-small">Set</button>
+          <button type="submit" name="preset" value="empty" class="btn btn-small">Empty</button>
+          <button type="submit" name="preset" value="full" class="btn btn-small">Full</button>
+        </form>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No ingredients. Run <code>python seed.py</code> first.</p>
+  {% endif %}
+</section>
+{% endblock %}

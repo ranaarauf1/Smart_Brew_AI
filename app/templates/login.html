@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Log in – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <h1>Log in</h1>
+</div>
+
+<form class="touch-form" method="post" action="{{ url_for('auth.login') }}" novalidate>
+  {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+
+  <label class="field">
+    <span>Email</span>
+    <input type="email" name="email" value="{{ form.get('email', '') }}" autocomplete="email" required>
+  </label>
+
+  <label class="field">
+    <span>Password</span>
+    <input type="password" name="password" autocomplete="current-password" required>
+  </label>
+
+  <button type="submit" class="btn btn-primary btn-wide">Log in</button>
+  <p class="form-hint">
+    Have a card? Tap it on the <a href="{{ url_for('simulation.panel') }}">Simulation panel</a>.
+    New here? <a href="{{ url_for('auth.register') }}">Create account</a>
+  </p>
+</form>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Customize {{ drink.name }} – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.drink_detail', drink_id=drink.id) }}">‹ Back</a>
+  <h1>{{ drink.icon }} {{ drink.name }}</h1>
+</div>
+
+{% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+
+{# FR-13: every change is sent to the preview endpoint; Python calculates,
+   customize.js only displays the result #}
+<form id="customize-form" class="customize" method="post"
+      action="{{ url_for('customer.place_order', drink_id=drink.id) }}"
+      data-preview-url="{{ url_for('customer.preview', drink_id=drink.id) }}">
+  <div class="customize-options">
+    {% for group in groups %}
+      <fieldset class="option-group" data-group="{{ group.key }}">
+        <legend>{{ group.label }}</legend>
+
+        {% if group.key == 'syrup' %}
+          <div class="shots">
+            <span class="shots-label">Shots</span>
+            <button type="button" class="stepper" data-step="-1" aria-label="Fewer shots">−</button>
+            <input type="number" id="syrup-shots" name="syrup_shots" min="0" max="{{ max_shots }}"
+                   value="{{ selected.get('syrup_shots') or 0 }}" inputmode="numeric">
+            <button type="button" class="stepper" data-step="1" aria-label="More shots">+</button>
+          </div>
+        {% endif %}
+
+        <div class="option-list">
+          {% for entry in group.options %}
+            {% set option = entry.option %}
+            {# FR-65: depleted options are disabled and labelled #}
+            <label class="option{% if not entry.in_stock %} option-disabled{% endif %}">
+              <input type="radio" name="{{ group.key }}" value="{{ option.id }}"
+                     data-option-id="{{ option.id }}"
+                     {% if entry.in_stock and (selected.get(group.key)|string) == (option.id|string) %}checked{% endif %}
+                     {% if not entry.in_stock %}disabled{% endif %}>
+              <span class="option-name">{{ option.name }}</span>
+              {% if option.price_delta_cents %}
+                <span class="option-price">+{{ option.price_delta_cents|euro }}{% if group.key == 'syrup' %} / shot{% endif %}</span>
+              {% endif %}
+              <span class="out-of-stock-label"{% if entry.in_stock %} hidden{% endif %}>Out of stock</span>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% endfor %}
+  </div>
+
+  <aside class="panel live-panel" aria-live="polite">
+    <p class="live-summary" id="preview-summary">{{ preview.get('summary', '') }}</p>
+    <p class="live-price" id="preview-price">{{ preview.get('price', '–') }}</p>
+    <dl class="nutrition" id="preview-nutrition">
+      {% for label, value in preview.get('nutrition', []) %}
+        <div class="nutrition-row"><dt>{{ label }}</dt><dd>{{ value }}</dd></div>
+      {% endfor %}
+    </dl>
+    <div id="preview-messages">
+      {% for message in preview.get('errors', []) + preview.get('stock_problems', []) %}
+        <p class="field-error">{{ message }}</p>
+      {% endfor %}
+    </div>
+    <button type="submit" id="confirm-button" class="btn btn-primary btn-wide"
+            {% if not (preview.ok and preview.can_order) %}disabled{% endif %}>Confirm order</button>
+  </aside>
+</form>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/customize.js') }}"></script>
+{% endblock %}

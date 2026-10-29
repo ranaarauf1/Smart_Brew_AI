@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ drink.name }} – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.menu', category=drink.category_id) }}">‹ {{ drink.category.name }}</a>
+  <h1>{{ drink.name }}</h1>
+</div>
+
+<div class="detail">
+  <div class="detail-main">
+    <span class="detail-icon">{{ drink.icon }}</span>
+    <p class="detail-description">{{ drink.description }}</p>
+    <p class="detail-price">{{ drink.base_price_cents|euro }}</p>
+    {% if available %}
+      <a class="btn btn-primary btn-wide" href="{{ url_for('customer.customize', drink_id=drink.id) }}">Customize &amp; order</a>
+    {% else %}
+      <button type="button" class="btn btn-wide" disabled>Not available</button>
+    {% endif %}
+  </div>
+
+  {# FR-12: nutritional information per serving #}
+  <section class="panel nutrition">
+    <h2>Nutrition per serving</h2>
+    <dl>
+      {% for label, value in nutrition %}
+        <div class="nutrition-row">
+          <dt>{{ label }}</dt>
+          <dd>{{ value }}</dd>
+        </div>
+      {% endfor %}
+    </dl>
+  </section>
+</div>
+{% endblock %}

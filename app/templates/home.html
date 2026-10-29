@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="welcome">
+  {% if current_user %}
+    <h1>Hi {{ current_user.name }}!</h1>
+    <p class="subtitle">What would you like today?</p>
+  {% else %}
+    <h1>Good to see you!</h1>
+    <p class="subtitle">Tap a button to get started.</p>
+  {% endif %}
+
+  <div class="button-grid">
+    <a class="btn btn-primary" href="{{ url_for('customer.menu') }}">
+      <span class="btn-icon">☕</span>
+      Menu
+    </a>
+    {% if current_user %}
+      <a class="btn" href="{{ url_for('auth.profile') }}">
+        <span class="btn-icon">👤</span>
+        My profile
+      </a>
+    {% else %}
+      <a class="btn" href="{{ url_for('auth.login') }}">
+        <span class="btn-icon">🔑</span>
+        Log in
+      </a>
+      <a class="btn" href="{{ url_for('auth.register') }}">
+        <span class="btn-icon">✨</span>
+        Create account
+      </a>
+    {% endif %}
+    <a class="btn btn-sim" href="{{ url_for('simulation.panel') }}">
+      <span class="btn-icon">🛠️</span>
+      Simulation
+    </a>
+  </div>
+</section>
+{% endblock %}

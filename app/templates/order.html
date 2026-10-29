@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Your order – SmartBrew AI{% endblock %}
+
+{% block content %}
+{% set details = order.customizations %}
+
+{% if order.status == 'pending' %}
+  <div class="page-header">
+    <a class="btn-back" href="{{ url_for('customer.customize', drink_id=order.drink_id) }}">‹ Change</a>
+    <h1>Your order</h1>
+  </div>
+
+  <div class="order-card panel">
+    <span class="detail-icon">{{ order.drink.icon }}</span>
+    <div>
+      <p class="big">{{ order.drink.name }}</p>
+      <p class="muted">{{ details.get('summary', '') }}</p>
+      <p class="detail-price">{{ order.amount_cents|euro }}</p>
+    </div>
+  </div>
+
+  {# Temporary step: payment is added here with feature 7 #}
+  <form method="post" action="{{ url_for('customer.dispense', order_id=order.id) }}">
+    <button type="submit" class="btn btn-primary btn-wide">Confirm &amp; dispense</button>
+  </form>
+  <p class="form-hint">Payment will be added to this step in a later version.</p>
+
+{% elif order.status == 'completed' %}
+  <section class="welcome">
+    <span class="detail-icon">{{ order.drink.icon }}</span>
+    <h1>Enjoy your {{ order.drink.name }}!</h1>
+    <p class="subtitle">{{ details.get('summary', '') }} · {{ order.amount_cents|euro }}</p>
+    <div class="button-grid">
+      <a class="btn btn-primary" href="{{ url_for('customer.menu') }}"><span class="btn-icon">☕</span>Another drink</a>
+      <a class="btn" href="{{ url_for('customer.home') }}"><span class="btn-icon">🏠</span>Done</a>
+    </div>
+  </section>
+
+{% elif order.status == 'cancelled' %}
+  <section class="welcome">
+    <span class="detail-icon">⚠️</span>
+    <h1>Sorry, we couldn't make your drink</h1>
+    <p class="subtitle">{{ order.failure_reason }}</p>
+    <p class="muted">Nothing was taken from the machine's stock.</p>
+    <div class="button-grid">
+      <a class="btn btn-primary" href="{{ url_for('customer.menu', category=order.drink.category_id) }}"><span class="btn-icon">☕</span>Back to menu</a>
+    </div>
+  </section>
+
+{% else %}
+  <section class="welcome">
+    <h1>Your drink is being prepared…</h1>
+    <a class="btn btn-wide" href="{{ url_for('customer.view_order', order_id=order.id) }}">Refresh</a>
+  </section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Not found – SmartBrew AI{% endblock %}
+
+{% block content %}
+<section class="welcome">
+  <h1>Sorry, that isn't here</h1>
+  <p class="subtitle">The page or drink you were looking for is not available.</p>
+  <div class="button-grid">
+    <a class="btn btn-primary" href="{{ url_for('customer.menu') }}"><span class="btn-icon">☕</span>Menu</a>
+    <a class="btn" href="{{ url_for('customer.home') }}"><span class="btn-icon">🏠</span>Home</a>
+  </div>
+</section>
+{% endblock %}

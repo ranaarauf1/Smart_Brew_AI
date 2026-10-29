@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}My profile – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <h1>My profile</h1>
+</div>
+
+<div class="panel-grid">
+  <section class="panel">
+    <h2>Account</h2>
+    <p class="big">{{ current_user.name }}</p>
+    <p class="muted">{{ current_user.email }}</p>
+  </section>
+
+  <section class="panel">
+    <h2>NFC card</h2>
+    {% if linked_card %}
+      <p class="big">📶 {{ linked_card.uid }}</p>
+      <form method="post" action="{{ url_for('auth.unlink_card') }}">
+        <button type="submit" class="btn btn-small">Unlink card</button>
+      </form>
+    {% else %}
+      <p class="muted">No card linked yet.</p>
+    {% endif %}
+
+    {% if linkable_cards %}
+      <form class="link-form" method="post" action="{{ url_for('auth.link_card') }}">
+        <label class="field">
+          <span>{{ "Replace with" if linked_card else "Link a demo card" }}</span>
+          <select name="card_id">
+            {% for card in linkable_cards %}
+              <option value="{{ card.id }}">{{ card.uid }} – {{ card.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit" class="btn btn-primary btn-small">Link card</button>
+      </form>
+    {% endif %}
+  </section>
+
+  <section class="panel panel-wide">
+    <h2>Order history</h2>
+    {% if orders %}
+      {# FR-05, FR-06: every order with its customization details #}
+      <ul class="order-list">
+        {% for order in orders %}
+          <li class="order-row">
+            <span class="order-date">{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+            <span class="order-drink">{{ order.drink.icon }} {{ order.drink.name }}
+              <span class="muted">{{ order.customizations.get('summary', '') }}</span></span>
+            <span class="order-price">{{ order.amount_cents|euro }}</span>
+            <span class="status status-{{ order.status }}">{{ order.status|capitalize }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No orders yet.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
