@@ -306,8 +306,8 @@ def end_session():
     Returns:
         None
     """
-    # TODO(feature 7, FR-01–03): call end_session() after a successful
-    # purchase, once the payment flow in services/payments.py completes.
+    # Also called after every successful purchase (FR-01–03), see
+    # routes/customer.py finish_payment_request()
     session.clear()
 
 

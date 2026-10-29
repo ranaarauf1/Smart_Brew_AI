@@ -1,10 +1,10 @@
-"""Order flow: confirm a customized drink, then dispense it (feature 4:
-FR-14, FR-27, FR-66, FR-67; history FR-05, FR-06).
+"""Order flow: confirm a customized drink, then dispense it once paid
+(feature 4: FR-14, FR-27, FR-66, FR-67; history FR-05, FR-06).
 
-Status flow (payment is added between pending and dispensing in feature 7)::
+Status flow (payment steps in services/payments.py)::
 
-    pending --dispense--> dispensing --> completed
-                                    \\-> cancelled (stock re-check failed)
+    pending --pay--> paid --dispense--> dispensing --> completed
+                                                  \\-> cancelled (stock re-check failed)
 """
 
 import uuid
@@ -143,25 +143,46 @@ def can_access_order(order, user, session_order_id):
     return user is not None and order.user_id == user.id
 
 
-def dispense_order(order):
+def record_successful_payment(order, payment):
     """
-    Purpose: Dispenses a pending order: re-checks stock right before
-        dispensing (FR-66), deducts the ingredients (FR-27), records
-        low-threshold events (FR-67) and completes the transaction.
-        If the re-check fails the order is cancelled and nothing is deducted.
+    Purpose: Marks an order as paid and copies the payment summary onto it
+        for the history (NFR-08: brand and last 4 digits only). The caller
+        commits.
 
     Args:
-        order (Transaction): A pending order.
+        order (Transaction): The order.
+        payment (Payment): Its approved or offline-accepted payment.
+
+    Returns:
+        None
+    """
+    order.status = Transaction.STATUS_PAID
+    order.payment_method = payment.method
+    order.card_brand = payment.card_brand
+    order.card_last4 = payment.card_last4
+    order.prepaid_card_id = payment.prepaid_card_id
+
+
+def dispense_order(order):
+    """
+    Purpose: Dispenses a paid order: re-checks stock right before
+        dispensing (FR-66), deducts the ingredients (FR-27), records
+        low-threshold events (FR-67) and completes the transaction.
+        If the re-check fails the order is cancelled and nothing is
+        deducted; the caller refunds the payment (services/payments.py).
+
+    Args:
+        order (Transaction): A paid order.
 
     Returns:
         Transaction: The order with status completed or cancelled. An order
-            that is no longer pending (e.g. a double tap) is returned
-            unchanged, so it is never dispensed twice.
+            that is not paid (e.g. a double tap) is returned unchanged, so
+            nothing is dispensed twice or without payment (FR-62).
     """
-    # Claim the order: only one request can move it from pending to dispensing
+    # Claim the order: only one request can move it from paid to dispensing
     claimed = db.session.execute(
         update(Transaction)
-        .where(Transaction.id == order.id, Transaction.status == Transaction.STATUS_PENDING)
+        .where(Transaction.id == order.id, Transaction.status == Transaction.STATUS_PAID)
         .values(status=Transaction.STATUS_DISPENSING)
     )
     db.session.commit()

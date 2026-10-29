@@ -15,6 +15,7 @@ import pytest
 from app import db
 from app.models import CustomizationOption, Drink, Ingredient, SystemState, Transaction, User, utcnow
 from app.services import clock, customization, orders, preferences, recommendations, weather
+from tests.conftest import pay
 
 MORNING = datetime(2026, 10, 29, 8, 0)
 AFTERNOON = datetime(2026, 10, 29, 14, 0)
@@ -682,7 +683,8 @@ def test_user_without_orders_keeps_defaults_until_first_order(seeded_app):
         "milk": option_id(seeded_app, "milk", "Skimmed milk"),
         "strength": option_id(seeded_app, "strength", "Mild"),
     })
-    bob.post(response.headers["Location"] + "/dispense")
+    pay(bob, int(response.headers["Location"].rstrip("/").split("/")[-1]))
+    bob.post("/login", data={"email": "bob@demo.com", "password": "Bob2026!"})  # purchase logged him out
     after = bob.get(f"/drink/{latte}/customize").get_data(as_text=True)
 
     assert checked_option(before, seeded_app, "milk", "Whole milk")

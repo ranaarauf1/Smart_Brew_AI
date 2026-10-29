@@ -1,6 +1,6 @@
 """Customer-facing touchscreen pages: home, menu with recommendations
-(features 2, 6), customization (feature 3), ordering/dispensing (feature 4)
-and saved recipes (feature 5)."""
+(features 2, 6), customization (feature 3), ordering/dispensing (feature 4),
+saved recipes (feature 5) and payment (features 7, 8)."""
 
 from flask import (
     Blueprint,
@@ -15,8 +15,18 @@ from flask import (
     url_for,
 )
 
+from app.models import Transaction
 from app.routes.auth import login_required
-from app.services import customization, inventory, orders, preferences, recipes, recommendations
+from app.services import auth as auth_service
+from app.services import (
+    customization,
+    inventory,
+    orders,
+    payments,
+    preferences,
+    recipes,
+    recommendations,
+)
 from app.services import menu as menu_service
 from app.services import weather as weather_service
 
@@ -287,11 +297,33 @@ def place_order(drink_id):
     return redirect(url_for("customer.view_order", order_id=order.id))
 
 
+def finish_payment_request(order, outcome):
+    """
+    Purpose: Shows the payment result and, after a successful purchase,
+        ends the user's session (FR-01–03, NFR-14) while keeping access to
+        the result page.
+
+    Args:
+        order (Transaction): The order.
+        outcome (PaymentOutcome): Result of the payment or dispense.
+
+    Returns:
+        Response: Redirect to the order page.
+    """
+    if outcome.message:
+        flash(outcome.message, outcome.category)
+    if outcome.ok and g.user is not None:
+        auth_service.end_session()
+        session[SESSION_ORDER_KEY] = order.id  # still allowed to see the result
+        flash("Thanks! You have been logged out after your purchase.", "success")
+    return redirect(url_for("customer.view_order", order_id=order.id))
+
+
 @customer_bp.route("/order/<int:order_id>")
 def view_order(order_id):
     """
-    Purpose: Shows an order: the summary with "Confirm & dispense" while
-        pending, or the result after dispensing.
+    Purpose: Shows an order: payment choices while pending (FR-31–35), the
+        state of a payment in progress, or the result after dispensing.
 
     Args:
         order_id (int): Transaction ID from the URL.
@@ -299,14 +331,68 @@ def view_order(order_id):
     Returns:
         str: The rendered order page; 404 for someone else's order.
     """
-    return render_template("order.html", order=get_own_order_or_404(order_id))
+    order = get_own_order_or_404(order_id)
+    return render_template(
+        "order.html",
+        order=order,
+        options=payments.get_payment_options(order) if order.status == Transaction.STATUS_PENDING else [],
+        prepaid_balance=payments.get_prepaid_balance(order),
+    )
+
+
+@customer_bp.route("/order/<int:order_id>/pay/<method>")
+def choose_instrument(order_id, method):
+    """
+    Purpose: Simulated reader screen: the customer "presents" a demo card,
+        phone or prepaid card for the chosen method.
+
+    Args:
+        order_id (int): Transaction ID from the URL.
+        method (str): Payment method from the URL.
+
+    Returns:
+        Response: The screen, or a redirect to the order page if the order
+            is not payable or the method is unavailable (FR-58).
+    """
+    order = get_own_order_or_404(order_id)
+    if method not in payments.METHOD_INFO:
+        abort(404)
+    if order.status != Transaction.STATUS_PENDING:
+        return redirect(url_for("customer.view_order", order_id=order.id))
+    unavailable = payments.get_unavailable_error(order, method)
+    if unavailable is not None:
+        flash(str(unavailable), "error")
+        return redirect(url_for("customer.view_order", order_id=order.id))
+
+    option = next(o for o in payments.get_payment_options(order) if o["method"] == method)
+    return render_template(
+        "pay.html", order=order, option=option, instruments=payments.list_instruments(method)
+    )
+
+
+@customer_bp.route("/order/<int:order_id>/pay", methods=["POST"])
+def pay(order_id):
+    """
+    Purpose: Pays for the order with the presented card and dispenses it
+        (FR-31–35). Pressing twice never charges twice (FR-62).
+
+    Args:
+        order_id (int): Transaction ID from the URL.
+
+    Returns:
+        Response: Redirect to the order page with the result.
+    """
+    order = get_own_order_or_404(order_id)
+    outcome = payments.pay(order, request.form.get("method"), request.form.get("instrument"))
+    return finish_payment_request(order, outcome)
 
 
 @customer_bp.route("/order/<int:order_id>/dispense", methods=["POST"])
 def dispense(order_id):
     """
-    Purpose: Temporary "Confirm & dispense" step: re-checks stock and
-        dispenses the drink (FR-66, FR-27).
+    Purpose: Dispenses an order that is already paid, e.g. after a dropped
+        connection was checked and the bank had charged (FR-62). Unpaid
+        orders are never dispensed.
 
     Args:
         order_id (int): Transaction ID from the URL.
@@ -315,11 +401,7 @@ def dispense(order_id):
         Response: Redirect to the order page showing the result.
     """
     order = get_own_order_or_404(order_id)
-    # TODO(feature 7): take payment before dispensing, never charge for a
-    # cancelled order, and end the session after a successful purchase
-    # (FR-01–03, see auth.end_session).
-    orders.dispense_order(order)
-    return redirect(url_for("customer.view_order", order_id=order.id))
+    return finish_payment_request(order, payments.dispense_paid_order(order))
 
 
 # ---------------------------------------------------------------------------

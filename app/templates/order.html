@@ -8,7 +8,7 @@
 {% if order.status == 'pending' %}
   <div class="page-header">
     <a class="btn-back" href="{{ url_for('customer.customize', drink_id=order.drink_id) }}">‹ Change</a>
-    <h1>Your order</h1>
+    <h1>Pay for your order</h1>
   </div>
 
   <div class="order-card panel">
@@ -20,17 +20,54 @@
     </div>
   </div>
 
-  {# Temporary step: payment is added here with feature 7 #}
-  <form method="post" action="{{ url_for('customer.dispense', order_id=order.id) }}">
-    <button type="submit" class="btn btn-primary btn-wide">Confirm &amp; dispense</button>
-  </form>
-  <p class="form-hint">Payment will be added to this step in a later version.</p>
+  {# FR-31–35: payment methods; unavailable ones show why (FR-58) #}
+  <div class="pay-grid">
+    {% for option in options %}
+      {% if option.available %}
+        <a class="btn pay-option{% if option.note %} pay-offline{% endif %}"
+           href="{{ url_for('customer.choose_instrument', order_id=order.id, method=option.method) }}">
+          <span class="btn-icon">{{ option.icon }}</span>
+          {{ option.label }}
+          {% if option.note %}<span class="pay-note">{{ option.note }}</span>{% endif %}
+        </a>
+      {% else %}
+        <div class="btn pay-option pay-disabled" aria-disabled="true">
+          <span class="btn-icon">{{ option.icon }}</span>
+          {{ option.label }}
+          <span class="pay-note">{{ option.reason }}</span>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+{% elif order.status == 'payment_unknown' %}
+  <section class="welcome">
+    <span class="detail-icon">📡</span>
+    <h1>Checking your payment…</h1>
+    <p class="subtitle">The connection dropped during payment. Nothing was dispensed.
+      As soon as the connection is back we check with your bank – you will be charged at most once.</p>
+    <a class="btn btn-wide" href="{{ url_for('customer.view_order', order_id=order.id) }}">Check again</a>
+  </section>
+
+{% elif order.status == 'paid' %}
+  <section class="welcome">
+    <span class="detail-icon">✅</span>
+    <h1>Payment confirmed</h1>
+    <p class="subtitle">{{ order.drink.name }} · {{ order.amount_cents|euro }}</p>
+    <form method="post" action="{{ url_for('customer.dispense', order_id=order.id) }}">
+      <button type="submit" class="btn btn-primary btn-wide">Dispense my drink</button>
+    </form>
+  </section>
 
 {% elif order.status == 'completed' %}
   <section class="welcome">
     <span class="detail-icon">{{ order.drink.icon }}</span>
     <h1>Enjoy your {{ order.drink.name }}!</h1>
     <p class="subtitle">{{ details.get('summary', '') }} · {{ order.amount_cents|euro }}</p>
+    {% if order.card_last4 %}
+      <p class="muted paid-with">Paid with {{ order.card_brand }} •••• {{ order.card_last4 }}
+        {% if prepaid_balance is not none %} · Remaining balance {{ prepaid_balance|euro }}{% endif %}</p>
+    {% endif %}
     <div class="button-grid">
       <a class="btn btn-primary" href="{{ url_for('customer.menu') }}"><span class="btn-icon">☕</span>Another drink</a>
       <a class="btn" href="{{ url_for('customer.home') }}"><span class="btn-icon">🏠</span>Done</a>
@@ -50,7 +87,7 @@
 
 {% else %}
   <section class="welcome">
-    <h1>Your drink is being prepared…</h1>
+    <h1>Your order is being processed…</h1>
     <a class="btn btn-wide" href="{{ url_for('customer.view_order', order_id=order.id) }}">Refresh</a>
   </section>
 {% endif %}

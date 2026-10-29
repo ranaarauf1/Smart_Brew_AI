@@ -16,6 +16,27 @@ ALICE_EMAIL = "alice@demo.com"
 ALICE_PASSWORD = "Alice2026!"
 
 
+def pay(client, order_id, method="card_chip", instrument="visa-4242", **kwargs):
+    """
+    Purpose: Pays for an order through the payment form (feature 7); with
+        the defaults this inserts the always-approved demo Visa card, which
+        also dispenses the drink.
+
+    Args:
+        client (FlaskClient): The test client.
+        order_id (int): ID of the pending order.
+        method (str): Payment method, e.g. "card_chip" or "prepaid".
+        instrument (str): Demo card/phone key or prepaid card number.
+        **kwargs: Extra arguments for client.post, e.g. follow_redirects=True.
+
+    Returns:
+        TestResponse: The response to the payment POST.
+    """
+    return client.post(
+        f"/order/{order_id}/pay", data={"method": method, "instrument": instrument}, **kwargs
+    )
+
+
 @pytest.fixture
 def app():
     """

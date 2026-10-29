@@ -6,6 +6,7 @@ import math
 
 from app import db
 from app.models import SystemState
+from app.services import connectivity
 
 CONDITIONS = ("sunny", "cloudy", "rainy", "snowy")
 CONDITION_ICONS = {"sunny": "☀️", "cloudy": "☁️", "rainy": "🌧️", "snowy": "❄️"}
@@ -57,11 +58,11 @@ def get_weather(now):
             ("auto" or "manual").
 
     Raises:
-        WeatherUnavailableError: If the API is switched off on the
-            Simulation panel or the database is not seeded.
+        WeatherUnavailableError: If the API or the network is down on the
+            Simulation panel, or the database is not seeded.
     """
     state = SystemState.get()
-    if state is None or not state.weather_online:
+    if state is None or not connectivity.is_available(connectivity.WEATHER):
         raise WeatherUnavailableError("Weather service unavailable.")
     if state.weather_mode == SystemState.WEATHER_MANUAL:
         return {
@@ -127,6 +128,6 @@ def update_settings(mode, condition, temperature, online):
     state.weather_mode = mode
     state.weather_condition = condition
     state.weather_temp_c = temp
-    state.weather_online = bool(online)
     db.session.commit()
+    connectivity.set_service(connectivity.WEATHER, online)  # logs the change (feature 8)
     return state

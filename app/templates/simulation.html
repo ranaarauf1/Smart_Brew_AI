@@ -69,6 +69,46 @@
 
 {% if state %}
 <div class="panel-grid sim-section">
+  <section class="panel" id="connectivity">
+    <h2>📡 Connectivity</h2>
+    <p class="muted">
+      {% for service, up in connectivity.services.items() %}
+        <span class="svc {{ 'svc-up' if up else 'svc-down' }}">{{ service|replace('_', ' ')|capitalize }}: {{ 'up' if up else 'down' }}</span>
+      {% endfor %}
+    </p>
+    <form class="sim-form" method="post" action="{{ url_for('simulation.set_connectivity') }}">
+      <label class="switch-row"><input type="checkbox" name="network_down" {% if not state.network_online %}checked{% endif %}><span>Network down</span></label>
+      <label class="switch-row"><input type="checkbox" name="card_down" {% if not state.card_processor_online %}checked{% endif %}><span>Card processor down</span></label>
+      <label class="switch-row"><input type="checkbox" name="wallet_down" {% if not state.wallet_processor_online %}checked{% endif %}><span>Wallet processor down</span></label>
+      {# FR-62: test that a lost connection never charges twice #}
+      <label class="field">
+        <span>Drop connection during next payment</span>
+        <select name="drop_mode">
+          <option value="off" {% if state.drop_next_payment == 'off' %}selected{% endif %}>Off</option>
+          <option value="before_charge" {% if state.drop_next_payment == 'before_charge' %}selected{% endif %}>Before the bank receives it</option>
+          <option value="after_charge" {% if state.drop_next_payment == 'after_charge' %}selected{% endif %}>After the bank charges (answer lost)</option>
+        </select>
+      </label>
+      <button type="submit" class="btn btn-primary btn-small">Save connectivity</button>
+    </form>
+  </section>
+
+  <section class="panel" id="queue">
+    <h2>📦 Offline queue</h2>
+    <ul class="queue-counts">
+      {% for status, count in queue_counts.items() %}
+        <li><span>{{ status|capitalize }}</span><strong>{{ count }}</strong></li>
+      {% endfor %}
+    </ul>
+    <p class="muted">Last sync:
+      {% if state.last_sync_at %}{{ state.last_sync_at.strftime('%d.%m. %H:%M:%S') }} – {{ state.last_sync_summary }}{% else %}never{% endif %}</p>
+    <form method="post" action="{{ url_for('simulation.sync_now') }}">
+      <button type="submit" class="btn btn-small">Sync now</button>
+    </form>
+  </section>
+</div>
+
+<div class="panel-grid sim-section">
   <section class="panel" id="weather">
     <h2>🌦️ Weather</h2>
     <p class="muted">Service returns: <strong>{{ weather_text }}</strong></p>

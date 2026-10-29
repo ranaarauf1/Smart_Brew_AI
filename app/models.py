@@ -322,28 +322,33 @@ class SavedRecipe(db.Model):
 
 
 class Transaction(db.Model):
-    """One drink order and its payment; also the user's order history (FR-05, FR-06)."""
+    """One drink order: its lifecycle, price and the successful payment's
+    summary; also the user's order history (FR-05, FR-06).
 
-    METHOD_CARD = "card"
-    METHOD_CONTACTLESS = "contactless"
-    METHOD_MOBILE_WALLET = "mobile_wallet"  # Apple Pay / Google Pay
-    METHOD_PREPAID = "prepaid"
+    Status flow (see services/payments.py and services/orders.py)::
 
-    STATUS_PENDING = "pending"
-    STATUS_APPROVED = "approved"
-    STATUS_DECLINED = "declined"
-    STATUS_OFFLINE_QUEUED = "offline_queued"  # feature 8: accepted while offline
-    STATUS_SYNCED = "synced"  # feature 8: offline transaction confirmed on sync
+        pending -> paying -> paid -> dispensing -> completed
+                         |                    \\-> cancelled (refunded, FR-66)
+                         \\-> payment_unknown (connection dropped, FR-62)
+    """
+
+    STATUS_PENDING = "pending"  # waiting for payment
+    STATUS_PAYING = "paying"  # claimed by one payment request (FR-62: no double charge)
+    STATUS_PAYMENT_UNKNOWN = "payment_unknown"  # connection dropped mid-payment
+    STATUS_PAID = "paid"  # approved or accepted offline, not yet dispensed
     STATUS_DISPENSING = "dispensing"  # claimed by one dispense request (no double dispense)
     STATUS_COMPLETED = "completed"  # drink dispensed, stock deducted
-    STATUS_CANCELLED = "cancelled"  # FR-66: stock re-check failed, nothing deducted
+    STATUS_CANCELLED = "cancelled"  # FR-66: stock re-check failed, payment refunded
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))  # None = guest
     drink_id = db.Column(db.Integer, db.ForeignKey("drink.id"), nullable=False)
     customizations = db.Column(db.JSON, nullable=False, default=dict)
     amount_cents = db.Column(db.Integer, nullable=False)
-    payment_method = db.Column(db.String(20))  # None until payment exists (feature 7)
+    # Summary of the successful payment (details in Payment); NFR-08: brand
+    # and last 4 digits only, never the full card number
+    payment_method = db.Column(db.String(20))
+    card_brand = db.Column(db.String(20))
     card_last4 = db.Column(db.String(4))
     prepaid_card_id = db.Column(db.Integer, db.ForeignKey("prepaid_card.id"))
     status = db.Column(db.String(20), nullable=False, default=STATUS_PENDING)
@@ -358,6 +363,7 @@ class Transaction(db.Model):
     user = db.relationship("User", back_populates="transactions")
     drink = db.relationship("Drink")
     prepaid_card = db.relationship("PrepaidCard")
+    payments = db.relationship("Payment", back_populates="transaction", order_by="Payment.id")
 
     def __repr__(self):
         """
@@ -397,26 +403,126 @@ class PrepaidCard(db.Model):
         return f"<PrepaidCard {self.card_number} {self.balance_cents}c>"
 
 
+class Payment(db.Model):
+    """One payment attempt for an order (FR-31–35). An order has at most one
+    successful payment (FR-62). NFR-08: only brand and last 4 digits are
+    stored, never the full card number."""
+
+    METHOD_CHIP = "card_chip"  # "Insert card"
+    METHOD_CONTACTLESS = "card_contactless"  # "Tap card"
+    METHOD_APPLE_PAY = "apple_pay"
+    METHOD_GOOGLE_PAY = "google_pay"
+    METHOD_PREPAID = "prepaid"
+    CARD_METHODS = (METHOD_CHIP, METHOD_CONTACTLESS)
+    WALLET_METHODS = (METHOD_APPLE_PAY, METHOD_GOOGLE_PAY)
+    ALL_METHODS = CARD_METHODS + WALLET_METHODS + (METHOD_PREPAID,)
+
+    STATUS_APPROVED = "approved"
+    STATUS_DECLINED = "declined"
+    STATUS_ERROR = "error"  # processor error, not charged
+    STATUS_OFFLINE_QUEUED = "offline_queued"  # FR-54: accepted offline, waiting to be sent
+    STATUS_SYNCED = "synced"  # FR-55: offline payment approved on sync
+    STATUS_SYNC_DECLINED = "sync_declined"  # offline payment declined on sync (a loss)
+    STATUS_REFUNDED = "refunded"  # dispense failed after payment
+    STATUS_VOIDED = "voided"  # offline payment cancelled before it was sent
+    STATUS_UNKNOWN = "unknown"  # connection dropped, outcome checked on reconnect
+    STATUS_FAILED = "failed"  # connection dropped and the bank never charged
+    # Statuses that mean "this order is paid"
+    SUCCESS_STATUSES = (STATUS_APPROVED, STATUS_OFFLINE_QUEUED, STATUS_SYNCED)
+
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_id = db.Column(db.Integer, db.ForeignKey("transaction.id"), nullable=False)
+    method = db.Column(db.String(20), nullable=False)
+    card_brand = db.Column(db.String(20))
+    card_last4 = db.Column(db.String(4))
+    prepaid_card_id = db.Column(db.Integer, db.ForeignKey("prepaid_card.id"))
+    amount_cents = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), nullable=False)
+    error_code = db.Column(db.String(10))  # NFR-27, e.g. PAY-101
+    # FR-62: sent to the processor; the same key can never be charged twice
+    idempotency_key = db.Column(db.String(64), unique=True, nullable=False)
+    processor_reference = db.Column(db.String(40))
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utcnow, onupdate=utcnow)
+
+    transaction = db.relationship("Transaction", back_populates="payments")
+    prepaid_card = db.relationship("PrepaidCard")
+
+    def __repr__(self):
+        """
+        Purpose: Gives a readable representation for debugging.
+
+        Args:
+            None
+
+        Returns:
+            str: Short description of the payment.
+        """
+        return f"<Payment {self.id} {self.method} {self.status} {self.amount_cents}c>"
+
+
+class ProcessorCharge(db.Model):
+    """SIMULATION ONLY: the external card/wallet processor's own records.
+
+    This table stands in for the bank's side, which the machine cannot see
+    directly. It lets the simulation (and the tests) prove that a customer
+    was charged at most once per idempotency key (FR-62).
+    """
+
+    PROCESSOR_CARD = "card"
+    PROCESSOR_WALLET = "wallet"
+
+    STATUS_CHARGED = "charged"
+    STATUS_REFUNDED = "refunded"
+
+    id = db.Column(db.Integer, primary_key=True)
+    processor = db.Column(db.String(10), nullable=False)
+    idempotency_key = db.Column(db.String(64), unique=True, nullable=False)
+    token = db.Column(db.String(40), nullable=False)  # stand-in card token, not a card number
+    amount_cents = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(10), nullable=False, default=STATUS_CHARGED)
+    reference = db.Column(db.String(40), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    refunded_at = db.Column(db.DateTime)
+
+    def __repr__(self):
+        """
+        Purpose: Gives a readable representation for debugging.
+
+        Args:
+            None
+
+        Returns:
+            str: Short description of the simulated charge.
+        """
+        return f"<ProcessorCharge {self.reference} {self.status} {self.amount_cents}c>"
+
+
 class OfflineQueueItem(db.Model):
-    """Work stored while offline and replayed on reconnect (FR-53–55, FR-60)."""
+    """Work stored while offline and sent on reconnect (FR-53–55, FR-60).
+    Items are never deleted: each ends in a final status (NFR-29)."""
 
     KIND_TRANSACTION = "transaction"
     KIND_EMAIL = "email"
 
     STATUS_QUEUED = "queued"
     STATUS_SYNCED = "synced"
-    STATUS_FAILED = "failed"
+    STATUS_DECLINED = "declined"  # sent, but the bank declined it
+    STATUS_VOIDED = "voided"  # cancelled before sending (e.g. drink not dispensed)
 
     id = db.Column(db.Integer, primary_key=True)
     kind = db.Column(db.String(20), nullable=False)
     payload = db.Column(db.JSON, nullable=False, default=dict)
     transaction_id = db.Column(db.Integer, db.ForeignKey("transaction.id"))
+    payment_id = db.Column(db.Integer, db.ForeignKey("payment.id"))
     status = db.Column(db.String(20), nullable=False, default=STATUS_QUEUED)
     attempts = db.Column(db.Integer, nullable=False, default=0)
+    last_error = db.Column(db.String(120))
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     synced_at = db.Column(db.DateTime)
 
     transaction = db.relationship("Transaction")
+    payment = db.relationship("Payment")
 
     def __repr__(self):
         """
@@ -530,6 +636,12 @@ class SystemState(db.Model):
     weather_condition = db.Column(db.String(10), nullable=False, default="cloudy")
     weather_temp_c = db.Column(db.Float, nullable=False, default=12)
     time_override = db.Column(db.String(5))  # "HH:MM" simulated time, None = real time
+    # Feature 8: simulated outside services (FR-53–55, FR-58)
+    card_processor_online = db.Column(db.Boolean, nullable=False, default=True)
+    wallet_processor_online = db.Column(db.Boolean, nullable=False, default=True)
+    drop_next_payment = db.Column(db.String(15), nullable=False, default="off")  # off/before_charge/after_charge
+    last_sync_at = db.Column(db.DateTime)
+    last_sync_summary = db.Column(db.String(255))
     admin_pin_hash = db.Column(db.String(128), nullable=False)  # bcrypt, NFR-09
     failed_pin_attempts = db.Column(db.Integer, nullable=False, default=0)
     locked_until = db.Column(db.DateTime)  # 15 min lockout after 5 wrong PINs (FR-43–52)

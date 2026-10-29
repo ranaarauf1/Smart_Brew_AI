@@ -5,8 +5,15 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from app import db
 from app.models import Ingredient, NfcCard, SystemState
-from app.services import auth, clock, inventory
+from app.services import auth, clock, connectivity, inventory, offline
 from app.services import weather as weather_service
+
+# Form checkbox name -> service it switches off when checked
+CONNECTIVITY_SWITCHES = {
+    "network_down": connectivity.NETWORK,
+    "card_down": connectivity.CARD_PROCESSOR,
+    "wallet_down": connectivity.WALLET_PROCESSOR,
+}
 
 simulation_bp = Blueprint("simulation", __name__, url_prefix="/simulation")
 
@@ -21,9 +28,10 @@ def inject_simulated_clock():
         None
 
     Returns:
-        dict: Template variable sim_time ("HH:MM" or None).
+        dict: Template variables sim_time ("HH:MM" or None) and
+            connectivity (status of the network and services, feature 8).
     """
-    return {"sim_time": clock.get_time_override()}
+    return {"sim_time": clock.get_time_override(), "connectivity": connectivity.get_status()}
 
 
 @simulation_bp.route("/")
@@ -55,6 +63,8 @@ def panel():
         now_text=now.strftime("%H:%M"),
         min_temp=weather_service.MIN_TEMP_C,
         max_temp=weather_service.MAX_TEMP_C,
+        queue_counts=offline.get_queue_counts(),
+        drop_modes=connectivity.DROP_MODES,
     )
 
 
@@ -140,6 +150,52 @@ def set_weather():
     else:
         flash("Weather settings saved.", "success")
     return redirect(url_for("simulation.panel", _anchor="weather"))
+
+
+@simulation_bp.route("/connectivity", methods=["POST"])
+def set_connectivity():
+    """
+    Purpose: Switches the simulated network and processors on or off and
+        arms "Drop connection during next payment" (FR-53–55, FR-58, FR-62).
+        Coming back online sends the offline queue automatically.
+
+    Args:
+        None
+
+    Returns:
+        Response: Redirect back to the connectivity section of the panel.
+    """
+    try:
+        # Bring services up before the network so one sync covers everything
+        ordered = sorted(CONNECTIVITY_SWITCHES.items(), key=lambda kv: kv[1] == connectivity.NETWORK)
+        summaries = []
+        for field, service in ordered:
+            summary = connectivity.set_service(service, request.form.get(field) != "on")
+            if summary:
+                summaries.append(summary)
+        connectivity.set_drop_mode(request.form.get("drop_mode", connectivity.DROP_OFF))
+    except connectivity.ConnectivityError as error:
+        flash(str(error), "error")
+    else:
+        flash("Connectivity settings saved.", "success")
+        for summary in summaries:
+            flash(f"Offline sync: {summary}", "success")
+    return redirect(url_for("simulation.panel", _anchor="connectivity"))
+
+
+@simulation_bp.route("/sync", methods=["POST"])
+def sync_now():
+    """
+    Purpose: Sends the offline queue now (normally automatic on reconnect).
+
+    Args:
+        None
+
+    Returns:
+        Response: Redirect back to the queue section of the panel.
+    """
+    flash(f"Offline sync: {offline.run_sync()}", "success")
+    return redirect(url_for("simulation.panel", _anchor="queue"))
 
 
 @simulation_bp.route("/time", methods=["POST"])

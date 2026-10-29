@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}{{ option.label }} – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.view_order', order_id=order.id) }}">‹ Other method</a>
+  <h1>{{ option.icon }} {{ option.prompt }}</h1>
+</div>
+
+<p class="big">{{ order.drink.name }} · {{ order.amount_cents|euro }}</p>
+{% if option.note %}<p class="weather-note">{{ option.note }}</p>{% endif %}
+
+{# Simulated reader: pick the demo card or phone to present (no real cards) #}
+<p class="muted">Simulation: choose what to present to the reader.</p>
+{% if instruments %}
+  <div class="instrument-list">
+    {% for instrument in instruments %}
+      <form method="post" action="{{ url_for('customer.pay', order_id=order.id) }}">
+        <input type="hidden" name="method" value="{{ option.method }}">
+        <input type="hidden" name="instrument" value="{{ instrument.id }}">
+        <button type="submit" class="btn instrument">
+          <span class="instrument-label">{{ instrument.label }}</span>
+          <span class="muted instrument-note">{{ instrument.note }}</span>
+        </button>
+      </form>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="muted">No demo cards available. Run <code>python seed.py</code> first.</p>
+{% endif %}
+{% endblock %}

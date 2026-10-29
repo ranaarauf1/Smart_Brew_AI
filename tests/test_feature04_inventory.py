@@ -9,7 +9,7 @@ import pytest
 from app import db
 from app.models import CustomizationOption, Drink, ErrorEvent, Ingredient, Transaction
 from app.services import inventory
-from tests.conftest import ALICE_EMAIL, ALICE_PASSWORD
+from tests.conftest import ALICE_EMAIL, ALICE_PASSWORD, pay
 
 
 def option_id(app, group, name):
@@ -377,7 +377,7 @@ def test_pending_order_records_details_without_deducting(seeded_app, seeded_clie
     assert order.idempotency_key
     assert order.customizations["options"]["milk"] == "Oat milk"
     assert stock_levels(seeded_app) == before
-    assert b"Confirm &amp; dispense" in seeded_client.get(f"/order/{order_id}").data
+    assert b"Insert card" in seeded_client.get(f"/order/{order_id}").data  # payment step
 
 
 # ---------------------------------------------------------------------------
@@ -404,7 +404,7 @@ def test_dispense_deducts_exact_customized_quantities(seeded_app, seeded_client)
         milk="Oat milk", strength="Extra shot", syrup="Vanilla", syrup_shots=2,
     ))
 
-    response = seeded_client.post(f"/order/{order_id}/dispense", follow_redirects=True)
+    response = pay(seeded_client, order_id, follow_redirects=True)
 
     after = stock_levels(seeded_app)
     expected = {"Coffee beans": 27, "Water": 60, "Oat milk": 220, "Vanilla syrup": 20, "Cups": 1}
@@ -433,7 +433,7 @@ def test_transaction_records_all_customization_details(seeded_app, seeded_client
         milk="Skimmed milk", strength="Strong", temperature="Extra hot",
         syrup="Caramel", syrup_shots=1,
     ))
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
 
     details = get_transaction(seeded_app, order_id).customizations
 
@@ -464,7 +464,8 @@ def test_completed_order_appears_in_profile_history(seeded_client, login):
     login()
     order_id = order_id_from(place_order(seeded_client, app, "Latte", milk="Oat milk",
                                          strength="Extra shot"))
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
+    login()  # a purchase ends the session (FR-01–03)
 
     html = seeded_client.get("/profile").get_data(as_text=True)
 
@@ -492,7 +493,7 @@ def test_stock_drop_between_confirm_and_dispense_cancels_order(seeded_app, seede
     set_stock(seeded_app, "Coffee beans", 20, minimum=0)  # e.g. another order used them
     before = stock_levels(seeded_app)
 
-    response = seeded_client.post(f"/order/{order_id}/dispense", follow_redirects=True)
+    response = pay(seeded_client, order_id, follow_redirects=True)
 
     order = get_transaction(seeded_app, order_id)
     assert order.status == Transaction.STATUS_CANCELLED
@@ -517,7 +518,7 @@ def test_option_running_out_before_dispense_cancels_order(seeded_app, seeded_cli
     order_id = order_id_from(place_order(seeded_client, seeded_app, "Latte", milk="Oat milk"))
     set_stock(seeded_app, "Oat milk", 400)  # minimum 500
 
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
 
     order = get_transaction(seeded_app, order_id)
     assert order.status == Transaction.STATUS_CANCELLED
@@ -540,16 +541,16 @@ def test_drink_becoming_unavailable_before_dispense_cancels_order(seeded_app, se
     order_id = order_id_from(place_order(seeded_client, seeded_app, "Espresso"))
     set_stock(seeded_app, "Cups", 5)  # minimum 20
 
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
 
     order = get_transaction(seeded_app, order_id)
     assert order.status == Transaction.STATUS_CANCELLED
     assert "low on: Cups" in order.failure_reason
 
 
-def test_double_dispense_deducts_only_once(seeded_app, seeded_client):
+def test_double_pay_dispenses_only_once(seeded_app, seeded_client):
     """
-    Purpose: Pressing "Confirm & dispense" twice dispenses one drink.
+    Purpose: Pressing pay twice dispenses one drink.
 
     Args:
         seeded_app (Flask): Seeded test application.
@@ -560,8 +561,8 @@ def test_double_dispense_deducts_only_once(seeded_app, seeded_client):
     """
     order_id = order_id_from(place_order(seeded_client, seeded_app, "Espresso"))
 
-    seeded_client.post(f"/order/{order_id}/dispense")
-    second = seeded_client.post(f"/order/{order_id}/dispense", follow_redirects=True)
+    pay(seeded_client, order_id)
+    second = pay(seeded_client, order_id, follow_redirects=True)
 
     assert stock(seeded_app, "Coffee beans") == 1800 - 9
     assert stock(seeded_app, "Cups") == 180 - 1
@@ -570,7 +571,7 @@ def test_double_dispense_deducts_only_once(seeded_app, seeded_client):
 
 def test_cancelled_order_cannot_be_dispensed_later(seeded_app, seeded_client):
     """
-    Purpose: After a cancellation, refilling and pressing dispense again
+    Purpose: After a cancellation, refilling and paying again
         does nothing; a new order is needed.
 
     Args:
@@ -582,10 +583,10 @@ def test_cancelled_order_cannot_be_dispensed_later(seeded_app, seeded_client):
     """
     order_id = order_id_from(place_order(seeded_client, seeded_app, "Espresso"))
     set_stock(seeded_app, "Cups", 5)
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
     set_stock(seeded_app, "Cups", 200)
 
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
 
     assert get_transaction(seeded_app, order_id).status == Transaction.STATUS_CANCELLED
     assert stock(seeded_app, "Cups") == 200
@@ -603,7 +604,7 @@ def test_guest_can_order_and_dispense(seeded_app, seeded_client):
         None
     """
     order_id = order_id_from(place_order(seeded_client, seeded_app, "Green Tea"))
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
 
     order = get_transaction(seeded_app, order_id)
     assert order.user_id is None
@@ -632,6 +633,7 @@ def test_other_people_cannot_view_or_dispense_an_order(seeded_app, seeded_client
     for other in (stranger, bob):
         assert other.get(f"/order/{order_id}").status_code == 404
         assert other.post(f"/order/{order_id}/dispense").status_code == 404
+        assert pay(other, order_id).status_code == 404
     assert get_transaction(seeded_app, order_id).status == Transaction.STATUS_PENDING
 
 
@@ -647,6 +649,7 @@ def test_unknown_order_returns_404(seeded_client):
     """
     assert seeded_client.get("/order/9999").status_code == 404
     assert seeded_client.post("/order/9999/dispense").status_code == 404
+    assert pay(seeded_client, 9999).status_code == 404
 
 
 def test_deduct_stock_never_goes_negative(seeded_app):
@@ -692,7 +695,7 @@ def test_dispense_crossing_threshold_creates_one_event(seeded_app, seeded_client
     set_stock(seeded_app, "Oat milk", 600)
     order_id = order_id_from(place_order(seeded_client, seeded_app, "Latte", milk="Oat milk"))
 
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
 
     events = low_stock_events(seeded_app, "Oat milk")
     assert len(events) == 1
@@ -715,7 +718,7 @@ def test_no_event_when_staying_above_threshold(seeded_app, seeded_client):
         None
     """
     order_id = order_id_from(place_order(seeded_client, seeded_app, "Latte"))
-    seeded_client.post(f"/order/{order_id}/dispense")
+    pay(seeded_client, order_id)
 
     with seeded_app.app_context():
         assert ErrorEvent.query.count() == 0

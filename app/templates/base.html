@@ -30,6 +30,11 @@
       </div>
     </header>
 
+    {# FR-53: offline mode banner when the network is down #}
+    {% if connectivity and connectivity.offline %}
+      <div class="offline-banner" role="status">📡 Offline mode – basic ordering. Card payments up to €10 and prepaid cards still work.</div>
+    {% endif %}
+
     <main class="content">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}

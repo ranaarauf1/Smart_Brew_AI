@@ -19,13 +19,22 @@ Simulated NFC cards (uid / meaning):
 Technician PIN (admin mode):
     1234       (5 wrong tries -> locked for 15 minutes)
 
-Prepaid employee card:
+Prepaid employee cards:
     PP-1000-0001   holder Alice Example   balance EUR 25.00
+    PP-1000-0002   holder Bob Example     balance EUR 1.50 (too low for any drink)
 
-Payment test card numbers (fake processor, implemented with feature 7):
-    4242 4242 4242 4242   approved
-    4000 0000 0000 0002   declined: card declined
-    4000 0000 0000 9995   declined: insufficient funds
+Payment demo cards (simulated reader/processor, app/services/card_reader.py):
+    Visa       4242 4242 4242 4242   approved
+    Mastercard 5555 5555 5555 4444   approved
+    Visa       4000 0000 0000 9995   declined: insufficient funds (PAY-101)
+    Visa       4000 0000 0000 0119   processor error (PAY-201)
+
+Demo phones (Apple Pay / Google Pay):
+    Alice's iPhone (Apple Pay)    approved
+    Blocked iPhone (Apple Pay)    declined (PAY-102)
+    Bob's Pixel (Google Pay)      approved
+
+Offline: card payments accepted up to EUR 10 and queued; wallets disabled.
 
 Demo order history (for recommendations, feature 6):
     Alice: 3x Flat White and 1x Latte, oat milk, mostly strong
@@ -335,6 +344,12 @@ def seed_users_and_cards():
         holder_name="Alice Example",
         user=users["alice@demo.com"],
         balance_cents=2500,
+    ))
+    db.session.add(PrepaidCard(
+        card_number="PP-1000-0002",
+        holder_name="Bob Example",
+        user=users["bob@demo.com"],
+        balance_cents=150,  # too low for any drink: shows PAY-301
     ))
 
 

@@ -8,6 +8,7 @@ import pytest
 from app import db
 from app.models import CustomizationOption, Drink, Ingredient, SavedRecipe, Transaction, User
 from app.services import recipes
+from tests.conftest import pay
 
 RECIPE_CHOICES = {
     "milk": "Oat milk",
@@ -474,10 +475,10 @@ def test_delete_requires_confirmation(seeded_app, alice):
 # ---------------------------------------------------------------------------
 
 
-def test_one_touch_order_goes_to_dispense_step(seeded_app, alice):
+def test_one_touch_order_goes_to_payment_step(seeded_app, alice):
     """
     Purpose: One tap on "Order" creates the order with the saved options and
-        opens the confirm/dispense step, at the price shown in the list.
+        opens the payment step, at the price shown in the list.
 
     Args:
         seeded_app (Flask): Seeded test application.
@@ -494,14 +495,15 @@ def test_one_touch_order_goes_to_dispense_step(seeded_app, alice):
 
     assert response.status_code == 302
     assert "/order/" in response.headers["Location"]
-    assert "Confirm &amp; dispense" in order_page
+    assert "Insert card" in order_page
     assert "€5.50" in order_page
     with seeded_app.app_context():
         order = Transaction.query.filter_by(status=Transaction.STATUS_PENDING).one()
         assert order.customizations["summary"] == "Oat milk · Extra shot · Hot · 2× Vanilla"
         assert order.amount_cents == 550
 
-    dispensed = alice.post(response.headers["Location"] + "/dispense", follow_redirects=True)
+    order_id = int(response.headers["Location"].rstrip("/").split("/")[-1])
+    dispensed = pay(alice, order_id, follow_redirects=True)
     assert b"Enjoy your Latte!" in dispensed.data
 
 
