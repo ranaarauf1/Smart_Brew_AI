@@ -1,8 +1,6 @@
 {% extends "_layout.html" %}
-{# Customer look: the machine's touchscreen inside a graphite bezel.
+{# Customer look: the machine's touchscreen inside a walnut bezel.
    On small screens the bezel disappears and the screen fills the page. #}
-
-{% block legacy_styles %}{% endblock %}
 
 {% block look_styles %}
   <link rel="preload" href="{{ url_for('static', filename='fonts/bodoni-moda-latin-500-normal.woff2') }}" as="font" type="font/woff2" crossorigin>

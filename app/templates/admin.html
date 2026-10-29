@@ -1,126 +1,147 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Admin dashboard – SmartBrew AI{% endblock %}
+{% block title %}Service mode – SmartBrew AI{% endblock %}
 
-{% block content %}
-<div class="page-header">
-  <h1>Admin dashboard</h1>
-</div>
-
-{% set tab_labels = {'ingredients': 'Ingredients', 'bins': 'Waste bins', 'errors': 'Errors (' ~ active_errors|length ~ ')', 'events': 'Event log', 'audit': 'Audit log'} %}
-<nav class="tabs" aria-label="Admin sections">
+{% block nav %}
+{% set tab_labels = {'ingredients': 'Ingredients', 'bins': 'Waste bins', 'errors': 'Errors', 'events': 'Event log', 'audit': 'Audit log'} %}
+<nav class="svc-nav" aria-label="Service sections">
   {% for key, label in tab_labels.items() %}
-    <a class="tab{% if tab == key %} tab-active{% endif %}" href="{{ url_for('admin.dashboard', tab=key) }}">{{ label }}</a>
+    <a class="svc-nav-link tab{% if tab == key %} tab-active{% endif %}" href="{{ url_for('admin.dashboard', tab=key) }}"
+       {% if tab == key %}aria-current="page"{% endif %}>
+      {{ label }}{% if key == 'errors' %}<span class="svc-count num">{{ active_errors|length }}</span>{% endif %}
+    </a>
   {% endfor %}
 </nav>
+{% endblock %}
 
+{% block content %}
 {% if tab == 'ingredients' %}
+  <h1 class="svc-h1">Ingredients</h1>
   {# FR-43–52: refill, reset and limits for every ingredient #}
-  <div class="admin-list">
-    {% for ingredient in ingredients %}
-      {% set low = is_low(ingredient) %}
-      <article class="panel admin-item{% if low %} stock-low{% endif %}">
-        <div class="admin-item-head">
-          <span class="stock-name">{{ ingredient.name }}{% if low %} <span class="badge-low">LOW</span>{% endif %}</span>
-          <span class="muted">{{ ingredient.stock_level|round(1) }} / {{ ingredient.capacity|round(1) }} {{ ingredient.unit }} · min {{ ingredient.min_threshold|round(1) }}</span>
-          <span class="stock-bar"><span style="width: {{ (100 * ingredient.stock_level / ingredient.capacity)|round(0)|int }}%"></span></span>
-        </div>
-        <div class="admin-actions">
-          <form method="post" action="{{ url_for('admin.refill', ingredient_id=ingredient.id) }}" class="inline-fields">
-            <input type="number" name="quantity" min="0" step="any" placeholder="+ {{ ingredient.unit }}" aria-label="Refill quantity for {{ ingredient.name }}">
-            <button type="submit" class="btn btn-small btn-primary">Refill</button>
-          </form>
-          <form method="post" action="{{ url_for('admin.reset', ingredient_id=ingredient.id) }}">
-            <button type="submit" class="btn btn-small">Reset to full</button>
-          </form>
-          <form method="post" action="{{ url_for('admin.limits', ingredient_id=ingredient.id) }}" class="inline-fields">
-            <label>Min <input type="number" name="minimum" min="0" step="any" value="{{ ingredient.min_threshold|round(1) }}"></label>
-            <label>Capacity <input type="number" name="capacity" min="0" step="any" value="{{ ingredient.capacity|round(1) }}"></label>
-            <button type="submit" class="btn btn-small">Save limits</button>
-          </form>
-        </div>
-      </article>
-    {% endfor %}
-  </div>
+  <table class="svc-table">
+    <thead>
+      <tr><th>Ingredient</th><th class="num">Level</th><th>Refill</th><th>Minimum and capacity</th><th><span class="visually-hidden">Reset</span></th></tr>
+    </thead>
+    <tbody>
+      {% for ingredient in ingredients %}
+        {% set low = is_low(ingredient) %}
+        <tr class="{{ 'svc-row-warn' if low else '' }}">
+          <td><strong>{{ ingredient.name }}</strong>{% if low %} <span class="svc-tag is-warn">Below minimum</span>{% endif %}</td>
+          <td class="num">{{ ingredient.stock_level|round(1) }} {{ ingredient.unit }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin.refill', ingredient_id=ingredient.id) }}" class="svc-inline">
+              <input type="number" name="quantity" min="0" step="any" placeholder="+ {{ ingredient.unit }}" aria-label="Refill quantity for {{ ingredient.name }}">
+              <button type="submit" class="btn btn-small btn-primary">Refill</button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin.limits', ingredient_id=ingredient.id) }}" class="svc-inline">
+              <label>Min <input type="number" name="minimum" min="0" step="any" value="{{ ingredient.min_threshold|round(1) }}"></label>
+              <label>Cap <input type="number" name="capacity" min="0" step="any" value="{{ ingredient.capacity|round(1) }}"></label>
+              <button type="submit" class="btn btn-small">Save limits</button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin.reset', ingredient_id=ingredient.id) }}">
+              <button type="submit" class="btn btn-small">Reset to full</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
 {% elif tab == 'bins' %}
-  {% if out_of_service %}<div class="flash flash-error">{{ out_of_service }}</div>{% endif %}
-  <p class="muted">Alert at {{ alert_level }}%. At {{ halt_level }}% no new drink starts.</p>
-  <div class="admin-list">
-    {% for bin in bins %}
-      {% set state = 'full' if bin.level_percent >= halt_level else ('alert' if bin.level_percent >= alert_level else 'ok') %}
-      <article class="panel admin-item bin-{{ state }}">
-        <div class="admin-item-head">
-          <span class="stock-name">{{ bin.name }}</span>
-          <span class="muted">{{ bin.level_percent|round(1) }}% of {{ bin.capacity|round(0)|int }} {{ bin.unit }}
-            {% if state == 'full' %}· <strong>FULL – drinks stopped</strong>{% elif state == 'alert' %}· <strong>almost full</strong>{% endif %}</span>
-          <span class="stock-bar"><span style="width: {{ bin.level_percent|round(0)|int }}%"></span></span>
-        </div>
-        <form method="post" action="{{ url_for('admin.empty_bin', bin_id=bin.id) }}">
-          <button type="submit" class="btn btn-small btn-primary">Empty bin</button>
-        </form>
-      </article>
-    {% endfor %}
-  </div>
+  <h1 class="svc-h1">Waste bins</h1>
+  <p class="svc-desc">Alert at {{ alert_level }}%. At {{ halt_level }}% no new drink starts.</p>
+  <table class="svc-table">
+    <thead><tr><th>Bin</th><th class="num">Level</th><th>Fill</th><th>Status</th><th><span class="visually-hidden">Action</span></th></tr></thead>
+    <tbody>
+      {% for bin in bins %}
+        {% set state = 'full' if bin.level_percent >= halt_level else ('alert' if bin.level_percent >= alert_level else 'ok') %}
+        <tr class="{{ 'svc-row-bad' if state == 'full' else ('svc-row-warn' if state == 'alert' else '') }}">
+          <td><strong>{{ bin.name }}</strong><br><span class="svc-desc">{{ bin.capacity|round(0)|int }} {{ bin.unit }}</span></td>
+          <td class="num">{{ bin.level_percent|round(1) }}%</td>
+          <td><span class="svc-bar is-{{ state }}"><span style="width: {{ bin.level_percent|round(0)|int }}%"></span></span></td>
+          <td>
+            {% if state == 'full' %}<span class="svc-tag is-bad">Full – drinks stopped</span>
+            {% elif state == 'alert' %}<span class="svc-tag is-warn">Almost full</span>
+            {% else %}<span class="svc-tag is-ok">OK</span>{% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin.empty_bin', bin_id=bin.id) }}">
+              <button type="submit" class="btn btn-small btn-primary">Empty bin</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
 {% elif tab == 'errors' %}
+  <h1 class="svc-h1">Active errors</h1>
   {# NFR-27: code, short description and next action, newest first #}
   {% if active_errors %}
-    <div class="admin-list">
-      {% for event in active_errors %}
-        {% set info = describe(event) %}
-        <article class="panel admin-item severity-{{ event.severity }}">
-          <div class="admin-item-head">
-            <span class="stock-name"><code>{{ info.code }}</code> {{ info.title }}</span>
-            <span class="muted">{{ event.created_at.strftime('%d.%m. %H:%M:%S') }} UTC · {{ event.severity }}</span>
-            <span>{{ event.message }}</span>
-            <span class="next-action">Next: {{ info.next_action }}</span>
-          </div>
-          <form method="post" action="{{ url_for('admin.resolve_event', event_id=event.id) }}">
-            <button type="submit" class="btn btn-small btn-primary">Resolve</button>
-          </form>
-        </article>
-      {% endfor %}
-    </div>
+    <table class="svc-table">
+      <thead><tr><th>Code</th><th>Error</th><th>Next action</th><th>Since (UTC)</th><th><span class="visually-hidden">Action</span></th></tr></thead>
+      <tbody>
+        {% for event in active_errors %}
+          {% set info = describe(event) %}
+          <tr class="{{ 'svc-row-bad' if event.severity == 'critical' else 'svc-row-warn' }}">
+            <td class="mono">{{ info.code }}</td>
+            <td><strong>{{ info.title }}</strong><br>{{ event.message }}</td>
+            <td class="svc-next">Next: {{ info.next_action }}</td>
+            <td class="num">{{ event.created_at.strftime('%d.%m. %H:%M:%S') }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.resolve_event', event_id=event.id) }}">
+                <button type="submit" class="btn btn-small btn-primary">Resolve</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   {% else %}
-    <p class="muted">No active errors. 🎉</p>
+    <p class="svc-empty">No active errors.</p>
   {% endif %}
 
 {% elif tab == 'events' %}
-  <nav class="filter-row" aria-label="Event type">
-    <a class="tab{% if not kind %} tab-active{% endif %}" href="{{ url_for('admin.dashboard', tab='events') }}">All</a>
+  <h1 class="svc-h1">Event log</h1>
+  <nav class="svc-filter" aria-label="Event type">
+    <a class="svc-filter-link{% if not kind %} is-active{% endif %}" href="{{ url_for('admin.dashboard', tab='events') }}">All</a>
     {% for k in kinds %}
-      <a class="tab{% if kind == k %} tab-active{% endif %}" href="{{ url_for('admin.dashboard', tab='events', kind=k) }}">{{ k|capitalize }}</a>
+      <a class="svc-filter-link{% if kind == k %} is-active{% endif %}" href="{{ url_for('admin.dashboard', tab='events', kind=k) }}">{{ k|capitalize }}</a>
     {% endfor %}
   </nav>
-  <table class="log-table">
+  <table class="svc-table">
     <thead><tr><th>Time (UTC)</th><th>Code</th><th>Event</th><th>Status</th><th>Remote diagnostics</th></tr></thead>
     <tbody>
       {% for event in events %}
         {% set info = describe(event) %}
         <tr>
-          <td>{{ event.created_at.strftime('%d.%m. %H:%M:%S') }}</td>
-          <td><code>{{ info.code }}</code></td>
+          <td class="num">{{ event.created_at.strftime('%d.%m. %H:%M:%S') }}</td>
+          <td class="mono">{{ info.code }}</td>
           <td>{{ event.message }}</td>
           <td>{{ 'Active' if event.resolved_at is none else 'Resolved' }}</td>
           <td>{% if event.reported_at %}Sent {{ event.reported_at.strftime('%H:%M:%S') }}{% else %}Queued (offline){% endif %}</td>
         </tr>
       {% else %}
-        <tr><td colspan="5" class="muted">No events.</td></tr>
+        <tr><td colspan="5" class="svc-desc">No events.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 
 {% elif tab == 'audit' %}
+  <h1 class="svc-h1">Audit log</h1>
   {# NFR-31: read-only; there is no way to edit or delete entries #}
-  <p class="muted">Every entry, exit and admin action. Read only.</p>
-  <table class="log-table">
+  <p class="svc-desc">Every entry, exit and action in service mode. Read only.</p>
+  <table class="svc-table">
     <thead><tr><th>Time (UTC)</th><th>Action</th><th>Access</th><th>Details</th></tr></thead>
     <tbody>
       {% for entry in audit_log %}
         <tr>
-          <td>{{ entry.created_at.strftime('%d.%m. %H:%M:%S') }}</td>
-          <td><code>{{ entry.action }}</code></td>
+          <td class="num">{{ entry.created_at.strftime('%d.%m. %H:%M:%S') }}</td>
+          <td class="mono">{{ entry.action }}</td>
           <td>{{ entry.actor }}</td>
           <td>{{ entry.details }}</td>
         </tr>

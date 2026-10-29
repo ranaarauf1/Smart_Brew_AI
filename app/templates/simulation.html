@@ -1,160 +1,155 @@
 {% extends "sim_base.html" %}
 
-{% block title %}Simulation panel – SmartBrew AI{% endblock %}
-
+{% block title %}Simulation tool – SmartBrew AI{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
-  <h1>Simulation panel</h1>
-</div>
-<p class="muted">Stands in for the machine's hardware. More switches arrive with later features.</p>
+<nav class="sim-index" aria-label="Sections">
+  <a href="#nfc">NFC reader</a>
+  <a href="#stock">Ingredient stock</a>
+  <a href="#bins">Waste bins</a>
+  <a href="#faults">Hardware faults</a>
+  <a href="#admin-access">Admin access</a>
+  <a href="#connectivity">Connectivity</a>
+  <a href="#queue">Offline queue</a>
+  <a href="#outbox">Email outbox</a>
+  <a href="#weather">Weather</a>
+  <a href="#time">Time of day</a>
+</nav>
 
-<section class="panel panel-wide sim-section">
-  <h2>📶 NFC reader</h2>
-  <p class="muted">Pick a demo card and tap it on the reader.</p>
-
+<section class="sim-box" id="nfc">
+  <h2>NFC reader</h2>
+  <p class="sim-desc">Pick a demo card and tap it on the reader. The master card opens service mode.</p>
   {% if cards %}
-    <div class="card-list">
-      {% for card in cards %}
-        <form class="card-row" method="post" action="{{ url_for('simulation.nfc_tap') }}">
-          <input type="hidden" name="uid" value="{{ card.uid }}">
-          <div class="card-info">
-            <span class="card-uid">{{ card.uid }}</span>
-            <span class="card-label">{{ card.label }}</span>
-            <span class="card-owner muted">
+    <table class="sim-table">
+      <thead><tr><th>Card</th><th>Label</th><th>Linked to</th><th><span class="visually-hidden">Action</span></th></tr></thead>
+      <tbody>
+        {% for card in cards %}
+          <tr>
+            <td class="mono">{{ card.uid }}</td>
+            <td>{{ card.label }}</td>
+            <td>
               {% if card.is_master %}Technician master card
               {% elif card.user %}Linked to {{ card.user.name }}
               {% else %}Not linked{% endif %}
               {% if not card.is_active %} · inactive{% endif %}
-            </span>
-          </div>
-          <button type="submit" class="btn btn-primary btn-small">Tap</button>
-        </form>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="muted">No demo cards. Run <code>python seed.py</code> first.</p>
-  {% endif %}
-</section>
-
-<section class="panel panel-wide sim-section" id="stock">
-  <h2>🧪 Ingredient stock</h2>
-  <p class="muted">Set a level to test blocking. Below the minimum, drinks and options using it are blocked.</p>
-
-  {% if ingredients %}
-    <div class="stock-list">
-      {% for ingredient in ingredients %}
-        {% set low = is_low(ingredient) %}
-        <form class="stock-row{% if low %} stock-low{% endif %}" method="post" action="{{ url_for('simulation.set_stock') }}">
-          <input type="hidden" name="ingredient_id" value="{{ ingredient.id }}">
-          <div class="stock-info">
-            <span class="stock-name">{{ ingredient.name }}{% if low %} <span class="badge-low">LOW</span>{% endif %}</span>
-            <span class="muted stock-numbers">{{ ingredient.stock_level|round(1) }} / {{ ingredient.capacity|round(0)|int }} {{ ingredient.unit }} · min {{ ingredient.min_threshold|round(0)|int }}</span>
-            <span class="stock-bar"><span style="width: {{ (100 * ingredient.stock_level / ingredient.capacity)|round(0)|int }}%"></span></span>
-          </div>
-          <input class="stock-input" type="number" name="level" min="0" max="{{ ingredient.capacity }}" step="any"
-                 value="{{ ingredient.stock_level|round(1) }}" aria-label="New level for {{ ingredient.name }}">
-          <button type="submit" class="btn btn-primary btn-small">Set</button>
-          <button type="submit" name="preset" value="empty" class="btn btn-small">Empty</button>
-          <button type="submit" name="preset" value="full" class="btn btn-small">Full</button>
-        </form>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="muted">No ingredients. Run <code>python seed.py</code> first.</p>
-  {% endif %}
-</section>
-
-{% if state %}
-<div class="panel-grid sim-section">
-  <section class="panel" id="admin-access">
-    <h2>🔧 Admin access</h2>
-    <p class="muted">Tap the technician master card (04FFEE01) above, enter the PIN, or turn the service key.</p>
-    <div class="radio-row">
-      <form method="post" action="{{ url_for('simulation.service_key') }}">
-        <button type="submit" class="btn btn-primary btn-small">🔑 Turn service key</button>
-      </form>
-      <a class="btn btn-small" href="{{ url_for('admin.login') }}">PIN keypad</a>
-    </div>
-  </section>
-
-  <section class="panel" id="faults">
-    <h2>⚠️ Hardware faults</h2>
-    <p class="muted">Faults stay active until a technician resolves them in admin mode.</p>
-    {% for code, info, active in faults %}
-      <form class="fault-row" method="post" action="{{ url_for('simulation.trigger_fault') }}">
-        <input type="hidden" name="fault" value="{{ code }}">
-        <span>{{ info.message }}</span>
-        {% if active %}
-          <span class="badge-low">ACTIVE</span>
-        {% else %}
-          <button type="submit" class="btn btn-small">Trigger</button>
-        {% endif %}
-      </form>
-    {% endfor %}
-  </section>
-</div>
-
-<section class="panel panel-wide sim-section" id="bins">
-  <h2>🗑️ Waste bins</h2>
-  <p class="muted">Alert at 80%. At 95% no new drink starts.</p>
-  <div class="stock-list">
-    {% for bin in bins %}
-      <form class="stock-row{% if bin.level_percent >= 80 %} stock-low{% endif %}" method="post" action="{{ url_for('simulation.set_bin') }}">
-        <input type="hidden" name="bin_id" value="{{ bin.id }}">
-        <div class="stock-info">
-          <span class="stock-name">{{ bin.name }}</span>
-          <span class="muted stock-numbers">{{ bin.level_percent|round(1) }}% of {{ bin.capacity|round(0)|int }} {{ bin.unit }}</span>
-          <span class="stock-bar"><span style="width: {{ bin.level_percent|round(0)|int }}%"></span></span>
-        </div>
-        <input class="stock-input" type="number" name="level" min="0" max="100" step="any"
-               value="{{ bin.level_percent|round(1) }}" aria-label="New level for {{ bin.name }} in percent">
-        <button type="submit" class="btn btn-primary btn-small">Set</button>
-        <button type="submit" name="preset" value="empty" class="btn btn-small">Empty</button>
-        <button type="submit" name="preset" value="full" class="btn btn-small">Full</button>
-      </form>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="panel panel-wide sim-section" id="outbox">
-  <h2>✉️ Email outbox</h2>
-  <p class="muted">Receipt emails are written to <code>data/outbox/</code> instead of being sent.</p>
-  {% if outbox %}
-    <table class="log-table">
-      <thead><tr><th>To</th><th>Subject</th><th>Status</th><th>Time (UTC)</th><th></th></tr></thead>
-      <tbody>
-        {% for item in outbox %}
-          <tr>
-            <td>{{ item.payload.to }}</td>
-            <td>{{ item.payload.subject }}</td>
-            <td>{{ 'Sent' if item.status == 'synced' else 'Queued (offline)' }}</td>
-            <td>{{ (item.synced_at or item.created_at).strftime('%d.%m. %H:%M:%S') }}</td>
-            <td><a href="{{ url_for('simulation.view_email', item_id=item.id) }}">Open</a></td>
+            </td>
+            <td class="sim-actions">
+              <form method="post" action="{{ url_for('simulation.nfc_tap') }}">
+                <input type="hidden" name="uid" value="{{ card.uid }}">
+                <button type="submit" class="btn btn-primary btn-small">Tap card</button>
+              </form>
+            </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   {% else %}
-    <p class="muted">No emails yet.</p>
+    <p class="sim-desc">No demo cards. Run <code>python seed.py</code> first.</p>
   {% endif %}
 </section>
 
-<div class="panel-grid sim-section">
-  <section class="panel" id="connectivity">
-    <h2>📡 Connectivity</h2>
-    <p class="muted">
-      {% for service, up in connectivity.services.items() %}
-        <span class="svc {{ 'svc-up' if up else 'svc-down' }}">{{ service|replace('_', ' ')|capitalize }}: {{ 'up' if up else 'down' }}</span>
+<section class="sim-box" id="stock">
+  <h2>Ingredient stock</h2>
+  <p class="sim-desc">Set a level to test blocking. Below the minimum, drinks and options using it are blocked.</p>
+  {% if ingredients %}
+    <table class="sim-table">
+      <thead><tr><th>Ingredient</th><th class="num">Level</th><th class="num">Minimum</th><th class="num">Capacity</th><th>Set level</th></tr></thead>
+      <tbody>
+        {% for ingredient in ingredients %}
+          {% set low = is_low(ingredient) %}
+          <tr class="{{ 'sim-row-low' if low else '' }}">
+            <td>{{ ingredient.name }}{% if low %} <span class="badge-low">Low</span>{% endif %}</td>
+            <td class="num">{{ ingredient.stock_level|round(1) }} {{ ingredient.unit }}</td>
+            <td class="num">{{ ingredient.min_threshold|round(0)|int }}</td>
+            <td class="num">{{ ingredient.capacity|round(0)|int }}</td>
+            <td>
+              <form class="sim-inline" method="post" action="{{ url_for('simulation.set_stock') }}">
+                <input type="hidden" name="ingredient_id" value="{{ ingredient.id }}">
+                <input class="sim-number" type="number" name="level" min="0" max="{{ ingredient.capacity }}" step="any"
+                       value="{{ ingredient.stock_level|round(1) }}" aria-label="New level for {{ ingredient.name }}">
+                <button type="submit" class="btn btn-primary btn-small">Set</button>
+                <button type="submit" name="preset" value="empty" class="btn btn-small">Empty</button>
+                <button type="submit" name="preset" value="full" class="btn btn-small">Full</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="sim-desc">No ingredients. Run <code>python seed.py</code> first.</p>
+  {% endif %}
+</section>
+
+{% if state %}
+<section class="sim-box" id="bins">
+  <h2>Waste bins</h2>
+  <p class="sim-desc">Alert at 80%. At 95% no new drink starts.</p>
+  <table class="sim-table">
+    <thead><tr><th>Bin</th><th class="num">Level</th><th class="num">Capacity</th><th>Set level (%)</th></tr></thead>
+    <tbody>
+      {% for bin in bins %}
+        <tr class="{{ 'sim-row-low' if bin.level_percent >= 80 else '' }}">
+          <td>{{ bin.name }}</td>
+          <td class="num">{{ bin.level_percent|round(1) }}%</td>
+          <td class="num">{{ bin.capacity|round(0)|int }} {{ bin.unit }}</td>
+          <td>
+            <form class="sim-inline" method="post" action="{{ url_for('simulation.set_bin') }}">
+              <input type="hidden" name="bin_id" value="{{ bin.id }}">
+              <input class="sim-number" type="number" name="level" min="0" max="100" step="any"
+                     value="{{ bin.level_percent|round(1) }}" aria-label="New level for {{ bin.name }} in percent">
+              <button type="submit" class="btn btn-primary btn-small">Set</button>
+              <button type="submit" name="preset" value="empty" class="btn btn-small">Empty</button>
+              <button type="submit" name="preset" value="full" class="btn btn-small">Full</button>
+            </form>
+          </td>
+        </tr>
       {% endfor %}
-    </p>
+    </tbody>
+  </table>
+</section>
+
+<div class="sim-grid">
+  <section class="sim-box" id="faults">
+    <h2>Hardware faults</h2>
+    <p class="sim-desc">Faults stay active until a technician resolves them in service mode.</p>
+    {% for code, info, active in faults %}
+      <form class="sim-line" method="post" action="{{ url_for('simulation.trigger_fault') }}">
+        <input type="hidden" name="fault" value="{{ code }}">
+        <span>{{ info.message }}</span>
+        {% if active %}
+          <span class="sim-state-tag is-bad">Active</span>
+        {% else %}
+          <button type="submit" class="btn btn-small">Trigger fault</button>
+        {% endif %}
+      </form>
+    {% endfor %}
+  </section>
+
+  <section class="sim-box" id="admin-access">
+    <h2>Admin access</h2>
+    <p class="sim-desc">Tap the technician master card (04FFEE01) above, enter the PIN, or turn the service key.</p>
+    <div class="sim-line">
+      <form method="post" action="{{ url_for('simulation.service_key') }}">
+        <button type="submit" class="btn btn-primary btn-small">Turn service key</button>
+      </form>
+      <a class="btn btn-small" href="{{ url_for('admin.login') }}">Open the PIN keypad</a>
+    </div>
+  </section>
+
+  <section class="sim-box" id="connectivity">
+    <h2>Connectivity</h2>
+    <ul class="sim-status">
+      {% for service, up in connectivity.services.items() %}
+        <li><span>{{ service|replace('_', ' ')|capitalize }}</span><span class="sim-state-tag {{ 'is-ok' if up else 'is-bad' }}">{{ 'Up' if up else 'Down' }}</span></li>
+      {% endfor %}
+    </ul>
     <form class="sim-form" method="post" action="{{ url_for('simulation.set_connectivity') }}">
-      <label class="switch-row"><input type="checkbox" name="network_down" {% if not state.network_online %}checked{% endif %}><span>Network down</span></label>
-      <label class="switch-row"><input type="checkbox" name="card_down" {% if not state.card_processor_online %}checked{% endif %}><span>Card processor down</span></label>
-      <label class="switch-row"><input type="checkbox" name="wallet_down" {% if not state.wallet_processor_online %}checked{% endif %}><span>Wallet processor down</span></label>
+      <label class="sim-check"><input type="checkbox" name="network_down" {% if not state.network_online %}checked{% endif %}><span>Network down</span></label>
+      <label class="sim-check"><input type="checkbox" name="card_down" {% if not state.card_processor_online %}checked{% endif %}><span>Card processor down</span></label>
+      <label class="sim-check"><input type="checkbox" name="wallet_down" {% if not state.wallet_processor_online %}checked{% endif %}><span>Wallet processor down</span></label>
       {# FR-62: test that a lost connection never charges twice #}
-      <label class="field">
+      <label class="sim-field">
         <span>Drop connection during next payment</span>
         <select name="drop_mode">
           <option value="off" {% if state.drop_next_payment == 'off' %}selected{% endif %}>Off</option>
@@ -166,14 +161,14 @@
     </form>
   </section>
 
-  <section class="panel" id="queue">
-    <h2>📦 Offline queue</h2>
-    <ul class="queue-counts">
+  <section class="sim-box" id="queue">
+    <h2>Offline queue</h2>
+    <ul class="sim-status">
       {% for status, count in queue_counts.items() %}
-        <li><span>{{ status|capitalize }}</span><strong>{{ count }}</strong></li>
+        <li><span>{{ status|capitalize }}</span><span class="num">{{ count }}</span></li>
       {% endfor %}
     </ul>
-    <p class="muted">Last sync:
+    <p class="sim-desc">Last sync:
       {% if state.last_sync_at %}{{ state.last_sync_at.strftime('%d.%m. %H:%M:%S') }} – {{ state.last_sync_summary }}{% else %}never{% endif %}</p>
     <form method="post" action="{{ url_for('simulation.sync_now') }}">
       <button type="submit" class="btn btn-small">Sync now</button>
@@ -181,16 +176,40 @@
   </section>
 </div>
 
-<div class="panel-grid sim-section">
-  <section class="panel" id="weather">
-    <h2>🌦️ Weather</h2>
-    <p class="muted">Service returns: <strong>{{ weather_text }}</strong></p>
+<section class="sim-box" id="outbox">
+  <h2>Email outbox</h2>
+  <p class="sim-desc">Receipt emails are written to <code>data/outbox/</code> instead of being sent.</p>
+  {% if outbox %}
+    <table class="sim-table">
+      <thead><tr><th>To</th><th>Subject</th><th>Status</th><th>Time (UTC)</th><th><span class="visually-hidden">Action</span></th></tr></thead>
+      <tbody>
+        {% for item in outbox %}
+          <tr>
+            <td>{{ item.payload.to }}</td>
+            <td>{{ item.payload.subject }}</td>
+            <td>{{ 'Sent' if item.status == 'synced' else 'Queued (offline)' }}</td>
+            <td class="num">{{ (item.synced_at or item.created_at).strftime('%d.%m. %H:%M:%S') }}</td>
+            <td class="sim-actions"><a class="btn btn-small" href="{{ url_for('simulation.view_email', item_id=item.id) }}">Open</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="sim-desc">No emails yet.</p>
+  {% endif %}
+</section>
+
+<div class="sim-grid">
+  <section class="sim-box" id="weather">
+    <h2>Weather</h2>
+    <p class="sim-desc">Service returns: <strong>{{ weather_text }}</strong></p>
     <form class="sim-form" method="post" action="{{ url_for('simulation.set_weather') }}">
-      <div class="radio-row">
-        <label><input type="radio" name="mode" value="auto" {% if state.weather_mode == 'auto' %}checked{% endif %}> Auto (by time of day)</label>
-        <label><input type="radio" name="mode" value="manual" {% if state.weather_mode == 'manual' %}checked{% endif %}> Manual</label>
-      </div>
-      <label class="field">
+      <fieldset class="sim-radios">
+        <legend>Mode</legend>
+        <label class="sim-check"><input type="radio" name="mode" value="auto" {% if state.weather_mode == 'auto' %}checked{% endif %}><span>Auto (by time of day)</span></label>
+        <label class="sim-check"><input type="radio" name="mode" value="manual" {% if state.weather_mode == 'manual' %}checked{% endif %}><span>Manual</span></label>
+      </fieldset>
+      <label class="sim-field">
         <span>Condition (manual)</span>
         <select name="condition">
           {% for condition in conditions %}
@@ -198,13 +217,13 @@
           {% endfor %}
         </select>
       </label>
-      <label class="field">
+      <label class="sim-field">
         <span>Temperature °C (manual, {{ min_temp }} to {{ max_temp }})</span>
         <input type="number" name="temperature" min="{{ min_temp }}" max="{{ max_temp }}" step="0.5"
                value="{{ state.weather_temp_c|round(1) }}">
       </label>
       {# FR-56: simulate the weather API failing #}
-      <label class="switch-row">
+      <label class="sim-check">
         <input type="checkbox" name="api_down" {% if not state.weather_online %}checked{% endif %}>
         <span>Weather API down</span>
       </label>
@@ -212,15 +231,15 @@
     </form>
   </section>
 
-  <section class="panel" id="time">
-    <h2>🕒 Time of day</h2>
-    <p class="muted">Machine time: <strong>{{ now_text }}</strong>{% if state.time_override %} (simulated){% else %} (real){% endif %}</p>
+  <section class="sim-box" id="time">
+    <h2>Time of day</h2>
+    <p class="sim-desc">Machine time: <strong class="num">{{ now_text }}</strong>{% if state.time_override %} (simulated){% else %} (real){% endif %}</p>
     <form class="sim-form" method="post" action="{{ url_for('simulation.set_time') }}">
-      <label class="field">
+      <label class="sim-field">
         <span>Simulated time</span>
         <input type="time" name="time" value="{{ state.time_override or now_text }}">
       </label>
-      <div class="radio-row">
+      <div class="sim-line">
         <button type="submit" name="action" value="set" class="btn btn-primary btn-small">Set time</button>
         <button type="submit" name="action" value="real" class="btn btn-small">Use real time</button>
       </div>

@@ -2,13 +2,12 @@
 
 {% block title %}Outbox email – SmartBrew AI{% endblock %}
 
-
 {% block content %}
-<div class="page-header">
-  <a class="btn-back" href="{{ url_for('simulation.panel', _anchor='outbox') }}">‹ Outbox</a>
-  <h1>✉️ Email to {{ email.item.payload.to }}</h1>
-</div>
-<p class="muted">Status: {{ 'Sent' if email.item.status == 'synced' else 'Queued (offline)' }}
-  {% if email.item.payload.file_name %} · file data/outbox/{{ email.item.payload.file_name }}{% endif %}</p>
-<pre class="panel email-content">{{ email.content }}</pre>
+<p><a class="btn btn-small" href="{{ url_for('simulation.panel', _anchor='outbox') }}">{{ icon('back', 18) }}Back to the outbox</a></p>
+<section class="sim-box">
+  <h2>Email to {{ email.item.payload.to }}</h2>
+  <p class="sim-desc">Status: {{ 'Sent' if email.item.status == 'synced' else 'Queued (offline)' }}
+    {% if email.item.payload.file_name %} · file <code>data/outbox/{{ email.item.payload.file_name }}</code>{% endif %}</p>
+  <pre class="sim-pre">{{ email.content }}</pre>
+</section>
 {% endblock %}

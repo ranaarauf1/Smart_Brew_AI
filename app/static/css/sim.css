@@ -6,8 +6,8 @@ body.look-sim {
   --sim-panel: #f6f7f8;
   --sim-rule: #c4cad0;
   --sim-ink: #1f2328;        /* 15.8:1 on white */
-  --sim-muted: #57606a;      /* 6.4:1 on white */
-  --sim-accent: #1f5f99;     /* links and primary buttons, 6.9:1 on white */
+  --sim-muted: #57606a;      /* 6.4:1 on white, 6.0:1 on the header */
+  --sim-accent: #1f5f99;     /* links and primary buttons, 6.7:1 on white */
   background: var(--sim-bg);
   color: var(--sim-ink);
   font-size: var(--t-s);
@@ -77,7 +77,7 @@ body.look-sim {
   color: #fff;
 }
 
-.look-sim a {
+:where(.look-sim) a {
   color: var(--sim-accent);
 }
 
@@ -90,4 +90,208 @@ body.look-sim {
   background: var(--warn-soft);
   color: var(--crema-ink);
   font-weight: 700;
+}
+
+/* ---------- Sections, tables and forms of the tool ---------- */
+
+.sim-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  margin-bottom: var(--s-4);
+  font-size: var(--t-xs);
+}
+
+.sim-index a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.sim-box {
+  margin-bottom: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--sim-rule);
+  border-radius: 4px;
+  background: var(--sim-bg);
+}
+
+.sim-box h2 {
+  margin-bottom: var(--s-1);
+  font-size: var(--t-m);
+}
+
+.sim-desc {
+  margin-bottom: var(--s-3);
+  color: var(--sim-muted);
+  font-size: var(--t-xs);
+}
+
+.sim-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--s-4);
+  align-items: start;
+}
+
+.sim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-xs);
+}
+
+.sim-table th,
+.sim-table td {
+  padding: var(--s-1) var(--s-2);
+  border-bottom: 1px solid var(--sim-rule);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.sim-table th {
+  background: var(--sim-panel);
+  font-weight: 700;
+}
+
+.sim-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sim-actions {
+  text-align: right;
+}
+
+.sim-row-low td {
+  background: #fdf1ee;
+}
+
+.badge-low {
+  margin-left: var(--s-1);
+  padding: 0 6px;
+  border: 1px solid #b5412c;
+  border-radius: 3px;
+  color: #a03a26;  /* 6.1:1 on the row tint */
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sim-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.sim-number {
+  width: 110px;
+  min-height: 44px;
+}
+
+.sim-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+}
+
+.sim-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+
+.sim-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+.sim-check {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+}
+
+.sim-radios {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sim-radios legend {
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+.sim-status {
+  list-style: none;
+  margin: 0 0 var(--s-3);
+  padding: 0;
+  font-size: var(--t-xs);
+}
+
+.sim-status li {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--sim-rule);
+}
+
+.sim-state-tag {
+  font-weight: 700;
+}
+
+.sim-state-tag.is-ok { color: #2f6b3f; }   /* 6.4:1 on white */
+.sim-state-tag.is-bad { color: #a03a26; }  /* 6.7:1 on white */
+
+.sim-pre {
+  margin: 0;
+  padding: var(--s-3);
+  background: var(--sim-panel);
+  border: 1px solid var(--sim-rule);
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+}
+
+@media (max-width: 760px) {
+  .sim-main {
+    padding: var(--s-3);
+  }
+
+  .sim-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sim-box {
+    padding: var(--s-3);
+  }
+
+  .sim-table thead {
+    display: none;
+  }
+
+  .sim-table tr {
+    display: block;
+    padding: var(--s-2) 0;
+    border-bottom: 1px solid var(--sim-rule);
+  }
+
+  .sim-table td {
+    display: block;
+    border: 0;
+    padding: 2px 0;
+    text-align: left;
+  }
+
+  .sim-table .num {
+    text-align: left;
+  }
 }

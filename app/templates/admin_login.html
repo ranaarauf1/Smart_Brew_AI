@@ -1,20 +1,15 @@
 {% extends "admin_base.html" %}
 
-{% block title %}Admin mode – SmartBrew AI{% endblock %}
+{% block title %}Service mode – SmartBrew AI{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
-  <h1>🔧 Admin mode</h1>
-</div>
-
-<div class="admin-login">
-  <form class="panel keypad-form" method="post" action="{{ url_for('admin.login') }}">
-    <h2>Technician PIN</h2>
+<div class="svc-login">
+  <form class="svc-panel keypad-form" method="post" action="{{ url_for('admin.login') }}">
+    <h1 class="svc-h1">Technician PIN</h1>
     {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
     {% if locked_for %}
       {# NFR-12: PIN entry locked after 5 wrong attempts #}
-      <p class="lockout">🔒 PIN entry is locked. Try again in <strong>{{ locked_for }}</strong>.</p>
+      <p class="lockout">PIN entry is locked. Try again in <strong>{{ locked_for }}</strong>.</p>
     {% endif %}
     <input type="password" id="pin" name="pin" inputmode="numeric" autocomplete="off"
            maxlength="8" aria-label="PIN" {% if locked_for %}disabled{% endif %}>
@@ -22,6 +17,8 @@
       {% for key in ['1','2','3','4','5','6','7','8','9','⌫','0','OK'] %}
         {% if key == 'OK' %}
           <button type="submit" class="key key-ok">OK</button>
+        {% elif key == '⌫' %}
+          <button type="button" class="key" data-key="{{ key }}" aria-label="Delete last digit">{{ key }}</button>
         {% else %}
           <button type="button" class="key" data-key="{{ key }}">{{ key }}</button>
         {% endif %}
@@ -29,11 +26,11 @@
     </div>
   </form>
 
-  <div class="panel">
-    <h2>Other ways in</h2>
-    <p class="muted">Tap the technician master card or turn the service key on the
-      <a href="{{ url_for('simulation.panel', _anchor='admin-access') }}">Simulation panel</a>.
-      These also work while PIN entry is locked.</p>
+  <div class="svc-panel">
+    <h2 class="svc-h2">Other ways in</h2>
+    <p>Tap the technician master card or turn the service key in the
+      <a href="{{ url_for('simulation.panel', _anchor='admin-access') }}">Simulation tool</a>.
+      Both also work while PIN entry is locked.</p>
   </div>
 </div>
 {% endblock %}

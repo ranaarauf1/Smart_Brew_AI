@@ -8,7 +8,6 @@
   <title>{% block title %}SmartBrew AI{% endblock %}</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/atkinson-hyperlegible-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="{{ url_for('static', filename='fonts/atkinson-hyperlegible-latin-700-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
-  {% block legacy_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/core.css') }}">
   {% block look_styles %}{% endblock %}
 </head>
