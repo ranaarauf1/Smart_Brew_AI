@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Admin dashboard – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🔧 Admin dashboard</h1>
+  <span class="muted">Signed in by {{ admin_actor }}</span>
+</div>
+
+{% set tab_labels = {'ingredients': 'Ingredients', 'bins': 'Waste bins', 'errors': 'Errors (' ~ active_errors|length ~ ')', 'events': 'Event log', 'audit': 'Audit log'} %}
+<nav class="tabs" aria-label="Admin sections">
+  {% for key, label in tab_labels.items() %}
+    <a class="tab{% if tab == key %} tab-active{% endif %}" href="{{ url_for('admin.dashboard', tab=key) }}">{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{% if tab == 'ingredients' %}
+  {# FR-43–52: refill, reset and limits for every ingredient #}
+  <div class="admin-list">
+    {% for ingredient in ingredients %}
+      {% set low = is_low(ingredient) %}
+      <article class="panel admin-item{% if low %} stock-low{% endif %}">
+        <div class="admin-item-head">
+          <span class="stock-name">{{ ingredient.name }}{% if low %} <span class="badge-low">LOW</span>{% endif %}</span>
+          <span class="muted">{{ ingredient.stock_level|round(1) }} / {{ ingredient.capacity|round(1) }} {{ ingredient.unit }} · min {{ ingredient.min_threshold|round(1) }}</span>
+          <span class="stock-bar"><span style="width: {{ (100 * ingredient.stock_level / ingredient.capacity)|round(0)|int }}%"></span></span>
+        </div>
+        <div class="admin-actions">
+          <form method="post" action="{{ url_for('admin.refill', ingredient_id=ingredient.id) }}" class="inline-fields">
+            <input type="number" name="quantity" min="0" step="any" placeholder="+ {{ ingredient.unit }}" aria-label="Refill quantity for {{ ingredient.name }}">
+            <button type="submit" class="btn btn-small btn-primary">Refill</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.reset', ingredient_id=ingredient.id) }}">
+            <button type="submit" class="btn btn-small">Reset to full</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.limits', ingredient_id=ingredient.id) }}" class="inline-fields">
+            <label>Min <input type="number" name="minimum" min="0" step="any" value="{{ ingredient.min_threshold|round(1) }}"></label>
+            <label>Capacity <input type="number" name="capacity" min="0" step="any" value="{{ ingredient.capacity|round(1) }}"></label>
+            <button type="submit" class="btn btn-small">Save limits</button>
+          </form>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+
+{% elif tab == 'bins' %}
+  {% if out_of_service %}<div class="flash flash-error">{{ out_of_service }}</div>{% endif %}
+  <p class="muted">Alert at {{ alert_level }}%. At {{ halt_level }}% no new drink starts.</p>
+  <div class="admin-list">
+    {% for bin in bins %}
+      {% set state = 'full' if bin.level_percent >= halt_level else ('alert' if bin.level_percent >= alert_level else 'ok') %}
+      <article class="panel admin-item bin-{{ state }}">
+        <div class="admin-item-head">
+          <span class="stock-name">{{ bin.name }}</span>
+          <span class="muted">{{ bin.level_percent|round(1) }}% of {{ bin.capacity|round(0)|int }} {{ bin.unit }}
+            {% if state == 'full' %}· <strong>FULL – drinks stopped</strong>{% elif state == 'alert' %}· <strong>almost full</strong>{% endif %}</span>
+          <span class="stock-bar"><span style="width: {{ bin.level_percent|round(0)|int }}%"></span></span>
+        </div>
+        <form method="post" action="{{ url_for('admin.empty_bin', bin_id=bin.id) }}">
+          <button type="submit" class="btn btn-small btn-primary">Empty bin</button>
+        </form>
+      </article>
+    {% endfor %}
+  </div>
+
+{% elif tab == 'errors' %}
+  {# NFR-27: code, short description and next action, newest first #}
+  {% if active_errors %}
+    <div class="admin-list">
+      {% for event in active_errors %}
+        {% set info = describe(event) %}
+        <article class="panel admin-item severity-{{ event.severity }}">
+          <div class="admin-item-head">
+            <span class="stock-name"><code>{{ info.code }}</code> {{ info.title }}</span>
+            <span class="muted">{{ event.created_at.strftime('%d.%m. %H:%M:%S') }} UTC · {{ event.severity }}</span>
+            <span>{{ event.message }}</span>
+            <span class="next-action">Next: {{ info.next_action }}</span>
+          </div>
+          <form method="post" action="{{ url_for('admin.resolve_event', event_id=event.id) }}">
+            <button type="submit" class="btn btn-small btn-primary">Resolve</button>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No active errors. 🎉</p>
+  {% endif %}
+
+{% elif tab == 'events' %}
+  <nav class="filter-row" aria-label="Event type">
+    <a class="tab{% if not kind %} tab-active{% endif %}" href="{{ url_for('admin.dashboard', tab='events') }}">All</a>
+    {% for k in kinds %}
+      <a class="tab{% if kind == k %} tab-active{% endif %}" href="{{ url_for('admin.dashboard', tab='events', kind=k) }}">{{ k|capitalize }}</a>
+    {% endfor %}
+  </nav>
+  <table class="log-table">
+    <thead><tr><th>Time (UTC)</th><th>Code</th><th>Event</th><th>Status</th><th>Remote diagnostics</th></tr></thead>
+    <tbody>
+      {% for event in events %}
+        {% set info = describe(event) %}
+        <tr>
+          <td>{{ event.created_at.strftime('%d.%m. %H:%M:%S') }}</td>
+          <td><code>{{ info.code }}</code></td>
+          <td>{{ event.message }}</td>
+          <td>{{ 'Active' if event.resolved_at is none else 'Resolved' }}</td>
+          <td>{% if event.reported_at %}Sent {{ event.reported_at.strftime('%H:%M:%S') }}{% else %}Queued (offline){% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="muted">No events.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+{% elif tab == 'audit' %}
+  {# NFR-31: read-only; there is no way to edit or delete entries #}
+  <p class="muted">Every entry, exit and admin action. Read only.</p>
+  <table class="log-table">
+    <thead><tr><th>Time (UTC)</th><th>Action</th><th>Access</th><th>Details</th></tr></thead>
+    <tbody>
+      {% for entry in audit_log %}
+        <tr>
+          <td>{{ entry.created_at.strftime('%d.%m. %H:%M:%S') }}</td>
+          <td><code>{{ entry.action }}</code></td>
+          <td>{{ entry.actor }}</td>
+          <td>{{ entry.details }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% endblock %}

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from app import db
 from app.models import ErrorEvent, OfflineQueueItem, Payment, ProcessorCharge, Transaction, utcnow
-from app.services import connectivity, orders, processor
+from app.services import connectivity, maintenance, orders, processor, receipts
 
 QUEUE_CAPACITY = 1000  # NFR-30 requires at least 500
 OFFLINE_CARD_LIMIT_CENTS = 1000  # store-and-forward limit: €10 per payment
@@ -31,6 +31,7 @@ class SyncResult:
     kept: int = 0  # still queued (processor error or unreachable)
     confirmed: int = 0  # dropped payments found charged
     not_charged: int = 0  # dropped payments the bank never charged
+    emails: int = 0  # queued receipt emails written (feature 9)
 
     def summary(self):
         """
@@ -51,6 +52,8 @@ class SyncResult:
                 f" Dropped payments checked: {self.confirmed} charged once,"
                 f" {self.not_charged} not charged."
             )
+        if self.emails:
+            text += f" {self.emails} queued receipt email(s) sent."
         return text
 
     def anything_happened(self):
@@ -63,7 +66,7 @@ class SyncResult:
         Returns:
             bool: True if anything was sent, kept or checked.
         """
-        return bool(self.sent or self.kept or self.confirmed or self.not_charged)
+        return bool(self.sent or self.kept or self.confirmed or self.not_charged or self.emails)
 
 
 def count_queued():
@@ -286,6 +289,7 @@ def run_sync():
         send_queued_payments(result)
     else:
         result.kept = count_queued()
+    result.emails = receipts.send_queued_emails()  # FR-60
 
     summary = result.summary()
     state = connectivity.get_state()
@@ -299,4 +303,5 @@ def run_sync():
             resolved_at=utcnow(),
         ))
     db.session.commit()
+    maintenance.report_pending_events()  # events queued while offline go to remote diagnostics
     return summary

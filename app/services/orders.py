@@ -13,7 +13,7 @@ from sqlalchemy import update
 
 from app import db
 from app.models import Transaction, utcnow
-from app.services import customization, inventory, preferences
+from app.services import customization, inventory, maintenance, preferences
 
 
 class OrderError(Exception):
@@ -48,6 +48,11 @@ def validate_order(drink, data):
     shortages = inventory.check_stock(needs)
     if shortages:
         raise OrderError(inventory.shortage_message(shortages))
+    try:
+        # Feature 10: no drink starts with a full bin or if it would overfill one
+        maintenance.check_waste_capacity(needs)
+    except maintenance.WasteBinError as error:
+        raise OrderError(str(error)) from None
     return selection, needs
 
 
@@ -201,6 +206,7 @@ def dispense_order(order):
         return order
 
     inventory.record_threshold_crossings(levels_before, needs.keys())
+    maintenance.add_waste(needs)  # the drink is made: it always finishes
     order.status = Transaction.STATUS_COMPLETED
     order.completed_at = utcnow()
     db.session.commit()

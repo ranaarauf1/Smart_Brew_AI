@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Admin mode – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <h1>🔧 Admin mode</h1>
+</div>
+
+<div class="admin-login">
+  <form class="panel keypad-form" method="post" action="{{ url_for('admin.login') }}">
+    <h2>Technician PIN</h2>
+    {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+    {% if locked_for %}
+      {# NFR-12: PIN entry locked after 5 wrong attempts #}
+      <p class="lockout">🔒 PIN entry is locked. Try again in <strong>{{ locked_for }}</strong>.</p>
+    {% endif %}
+    <input type="password" id="pin" name="pin" inputmode="numeric" autocomplete="off"
+           maxlength="8" aria-label="PIN" {% if locked_for %}disabled{% endif %}>
+    <div class="keypad" {% if locked_for %}hidden{% endif %}>
+      {% for key in ['1','2','3','4','5','6','7','8','9','⌫','0','OK'] %}
+        {% if key == 'OK' %}
+          <button type="submit" class="key key-ok">OK</button>
+        {% else %}
+          <button type="button" class="key" data-key="{{ key }}">{{ key }}</button>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </form>
+
+  <div class="panel">
+    <h2>Other ways in</h2>
+    <p class="muted">Tap the technician master card or turn the service key on the
+      <a href="{{ url_for('simulation.panel', _anchor='admin-access') }}">Simulation panel</a>.
+      These also work while PIN entry is locked.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='js/keypad.js') }}"></script>
+{% endblock %}

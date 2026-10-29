@@ -16,8 +16,11 @@ Simulated NFC cards (uid / meaning):
     04FFEE01   Technician master     -> opens admin mode
     04DEAD99   Unregistered card     -> not linked to any account
 
-Technician PIN (admin mode):
-    1234       (5 wrong tries -> locked for 15 minutes)
+Admin mode (feature 10), three ways in:
+    Technician PIN 1234 on the keypad (5 wrong tries -> PIN locked for 15 minutes)
+    NFC master card 04FFEE01 (tap it on the Simulation panel)
+    "Turn service key" button on the Simulation panel
+    Admin mode ends after 2 minutes of inactivity.
 
 Prepaid employee cards:
     PP-1000-0001   holder Alice Example   balance EUR 25.00
@@ -364,8 +367,10 @@ def seed_machine_state():
     Returns:
         None
     """
-    db.session.add(WasteBin(name="Coffee grounds bin", level_percent=40))
-    db.session.add(WasteBin(name="Drip tray", level_percent=20))
+    db.session.add(WasteBin(name="Coffee grounds", kind=WasteBin.KIND_GROUNDS,
+                            capacity=1500, unit="g", level_percent=40))
+    db.session.add(WasteBin(name="Liquid waste", kind=WasteBin.KIND_LIQUID,
+                            capacity=2000, unit="ml", level_percent=20))
     db.session.add(SystemState(
         id=SystemState.SINGLETON_ID,
         network_online=True,

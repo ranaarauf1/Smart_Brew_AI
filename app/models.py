@@ -6,6 +6,8 @@ All timestamps are stored as naive UTC datetimes.
 
 from datetime import datetime, timezone
 
+from sqlalchemy import event
+
 from app import db
 
 
@@ -543,13 +545,20 @@ class OfflineQueueItem(db.Model):
 
 
 class WasteBin(db.Model):
-    """A waste container whose fill level is monitored (FR-43–52)."""
+    """A waste container whose fill level is monitored (FR-43–52).
+    Waste added per drink is defined in services/maintenance.py."""
 
     ALERT_LEVEL = 80  # percent: show maintenance alert
-    HALT_LEVEL = 95  # percent: stop dispensing
+    HALT_LEVEL = 95  # percent: stop starting new drinks
+
+    KIND_GROUNDS = "grounds"  # spent coffee grounds, in g
+    KIND_LIQUID = "liquid"  # rinse water and drips, in ml
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), unique=True, nullable=False)
+    kind = db.Column(db.String(10), nullable=False)
+    capacity = db.Column(db.Float, nullable=False)  # in unit
+    unit = db.Column(db.String(5), nullable=False)
     level_percent = db.Column(db.Float, nullable=False, default=0)
     emptied_at = db.Column(db.DateTime)
 
@@ -583,8 +592,12 @@ class ErrorEvent(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     resolved_at = db.Column(db.DateTime)  # None = still active
     ingredient_id = db.Column(db.Integer, db.ForeignKey("ingredient.id"))  # for stock events
+    waste_bin_id = db.Column(db.Integer, db.ForeignKey("waste_bin.id"))  # for bin events
+    # Sent to remote diagnostics at this time; None = queued while offline
+    reported_at = db.Column(db.DateTime)
 
     ingredient = db.relationship("Ingredient")
+    waste_bin = db.relationship("WasteBin")
 
     def __repr__(self):
         """
@@ -600,11 +613,12 @@ class ErrorEvent(db.Model):
 
 
 class AdminAuditLog(db.Model):
-    """Record of every admin login attempt and admin action (FR-43–52)."""
+    """Record of every admin entry, exit and action (FR-43–52). Entries can
+    only be added: updates and deletes are refused below."""
 
     id = db.Column(db.Integer, primary_key=True)
     action = db.Column(db.String(60), nullable=False)  # e.g. LOGIN_OK, REFILL
-    actor = db.Column(db.String(60), nullable=False)  # "PIN" or NFC card uid
+    actor = db.Column(db.String(60), nullable=False)  # "PIN", "NFC <uid>" or "SERVICE_KEY"
     details = db.Column(db.String(255), nullable=False, default="")
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
@@ -619,6 +633,49 @@ class AdminAuditLog(db.Model):
             str: Short description of the log entry.
         """
         return f"<AdminAuditLog {self.action} by {self.actor}>"
+
+
+class AuditLogImmutableError(Exception):
+    """Raised when code tries to change or delete an audit log entry."""
+
+
+@event.listens_for(AdminAuditLog, "before_update")
+def _refuse_audit_update(mapper, connection, target):
+    """
+    Purpose: Stops any change to a saved audit log entry, so the log cannot
+        be edited even by a bug.
+
+    Args:
+        mapper (Mapper): SQLAlchemy mapper (unused).
+        connection (Connection): Database connection (unused).
+        target (AdminAuditLog): The entry being changed.
+
+    Returns:
+        None
+
+    Raises:
+        AuditLogImmutableError: Always.
+    """
+    raise AuditLogImmutableError("Audit log entries cannot be changed.")
+
+
+@event.listens_for(AdminAuditLog, "before_delete")
+def _refuse_audit_delete(mapper, connection, target):
+    """
+    Purpose: Stops deleting an audit log entry.
+
+    Args:
+        mapper (Mapper): SQLAlchemy mapper (unused).
+        connection (Connection): Database connection (unused).
+        target (AdminAuditLog): The entry being deleted.
+
+    Returns:
+        None
+
+    Raises:
+        AuditLogImmutableError: Always.
+    """
+    raise AuditLogImmutableError("Audit log entries cannot be deleted.")
 
 
 class SystemState(db.Model):

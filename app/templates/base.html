@@ -21,6 +21,15 @@
             <button type="submit" class="btn-status">Log out</button>
           </form>
         {% endif %}
+        {% if admin_actor %}
+          {# Feature 10: admin mode ends after 2 minutes of inactivity #}
+          <a class="status-admin" href="{{ url_for('admin.dashboard') }}">🔧 Admin</a>
+          <span class="countdown" title="Admin mode ends">⏱ <span id="admin-countdown" data-timeout="{{ admin_timeout }}">{{ admin_timeout }}</span> s</span>
+          <form id="admin-exit-form" class="inline-form" method="post" action="{{ url_for('admin.exit_admin') }}">
+            <input type="hidden" name="reason" value="manual">
+            <button type="submit" class="btn-status">Exit admin</button>
+          </form>
+        {% endif %}
         {% if sim_time %}
           {# Simulated time of day from the Simulation panel (feature 6) #}
           <span id="clock" class="clock clock-sim" data-fixed="1">{{ sim_time }} <small>SIM</small></span>
@@ -33,6 +42,10 @@
     {# FR-53: offline mode banner when the network is down #}
     {% if connectivity and connectivity.offline %}
       <div class="offline-banner" role="status">📡 Offline mode – basic ordering. Card payments up to €10 and prepaid cards still work.</div>
+    {% endif %}
+    {# Feature 10: a full waste bin stops new drinks #}
+    {% if out_of_service %}
+      <div class="out-of-service-banner" role="alert">⛔ {{ out_of_service }}</div>
     {% endif %}
 
     <main class="content">
@@ -70,7 +83,10 @@
     })();
   </script>
   {% if current_user %}
-    <script src="{{ url_for('static', filename='js/session.js') }}" data-keepalive-url="{{ url_for('auth.keepalive') }}" data-home-url="{{ url_for('customer.home') }}"></script>
+    <script src="{{ url_for('static', filename='js/session.js') }}" data-countdown-id="countdown" data-form-id="logout-form" data-keepalive-url="{{ url_for('auth.keepalive') }}" data-home-url="{{ url_for('customer.home') }}"></script>
+  {% endif %}
+  {% if admin_actor %}
+    <script src="{{ url_for('static', filename='js/session.js') }}" data-countdown-id="admin-countdown" data-form-id="admin-exit-form" data-keepalive-url="{{ url_for('admin.keepalive') }}" data-home-url="{{ url_for('customer.home') }}"></script>
   {% endif %}
   {% block scripts %}{% endblock %}
 </body>

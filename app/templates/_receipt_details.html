@@ -1,0 +1,12 @@
+{# Receipt fields (FR-36): shared by the QR page and the public receipt page #}
+<dl class="receipt">
+  <div class="receipt-row"><dt>Order</dt><dd>#{{ receipt.order_id }}</dd></div>
+  <div class="receipt-row"><dt>Date</dt><dd>{{ receipt.when }}</dd></div>
+  <div class="receipt-row"><dt>Drink</dt><dd>{{ receipt.drink }}</dd></div>
+  <div class="receipt-row"><dt>Options</dt><dd>{{ receipt.options }}</dd></div>
+  <div class="receipt-row"><dt>Price</dt><dd>{{ receipt.price }}</dd></div>
+  <div class="receipt-row"><dt>Payment</dt><dd>{{ receipt.payment }}</dd></div>
+  {% if receipt.refund %}
+    <div class="receipt-row receipt-refund"><dt>Refund</dt><dd>{{ receipt.refund }}</dd></div>
+  {% endif %}
+</dl>

@@ -21,9 +21,11 @@ from app.services import auth as auth_service
 from app.services import (
     customization,
     inventory,
+    maintenance,
     orders,
     payments,
     preferences,
+    receipts,
     recipes,
     recommendations,
 )
@@ -114,6 +116,27 @@ def render_customize(drink, selected, error=None, status=200, recipe=None, recip
         recipe_name=recipe_name,
         max_recipe_name=recipes.MAX_NAME_LENGTH,
     ), status
+
+
+def redirect_if_cannot_start(drink):
+    """
+    Purpose: Stops a new order when the machine is out of service (full
+        waste bin, feature 10) or the drink is unavailable (stock or fault).
+
+    Args:
+        drink (Drink): The drink the customer wants.
+
+    Returns:
+        Response | None: Redirect to the menu with the reason, or None if
+            the drink can be ordered.
+    """
+    reason = maintenance.get_out_of_service_reason()
+    if reason is None and not inventory.is_drink_available(drink):
+        reason = inventory.unavailable_message(drink)
+    if reason is None:
+        return None
+    flash(reason, "warning")
+    return redirect(url_for("customer.menu", category=drink.category_id))
 
 
 def build_menu_entries(drinks, recs):
@@ -233,9 +256,9 @@ def customize(drink_id):
             not available (FR-14).
     """
     drink = get_drink_or_404(drink_id)
-    if not inventory.is_drink_available(drink):
-        flash(inventory.unavailable_message(drink), "warning")
-        return redirect(url_for("customer.menu", category=drink.category_id))
+    blocked = redirect_if_cannot_start(drink)
+    if blocked is not None:
+        return blocked
 
     selection = customization.default_selection(drink)
     preferences.apply_preferences(selection, g.user, drink)
@@ -284,9 +307,9 @@ def place_order(drink_id):
             unavailable.
     """
     drink = get_drink_or_404(drink_id)
-    if not inventory.is_drink_available(drink):
-        flash(inventory.unavailable_message(drink), "warning")
-        return redirect(url_for("customer.menu", category=drink.category_id))
+    blocked = redirect_if_cannot_start(drink)
+    if blocked is not None:
+        return blocked
 
     try:
         order = orders.create_pending_order(g.user, drink, request.form)
@@ -337,6 +360,7 @@ def view_order(order_id):
         order=order,
         options=payments.get_payment_options(order) if order.status == Transaction.STATUS_PENDING else [],
         prepaid_balance=payments.get_prepaid_balance(order),
+        can_receipt=receipts.can_have_receipt(order),
     )
 
 
@@ -402,6 +426,92 @@ def dispense(order_id):
     """
     order = get_own_order_or_404(order_id)
     return finish_payment_request(order, payments.dispense_paid_order(order))
+
+
+# ---------------------------------------------------------------------------
+# Receipts (feature 9)
+# ---------------------------------------------------------------------------
+
+
+def get_receipt_order_or_404(order_id):
+    """
+    Purpose: Loads the customer's own order that has a receipt (works after
+        logout, because the order ID stays in the session).
+
+    Args:
+        order_id (int): Transaction ID from the URL.
+
+    Returns:
+        Transaction: The order.
+    """
+    order = get_own_order_or_404(order_id)
+    if not receipts.can_have_receipt(order):
+        abort(404)
+    return order
+
+
+@customer_bp.route("/order/<int:order_id>/receipt")
+def qr_receipt(order_id):
+    """
+    Purpose: Shows the QR receipt (FR-36): a link with an unguessable token
+        when online, the receipt text itself when offline.
+
+    Args:
+        order_id (int): Transaction ID from the URL.
+
+    Returns:
+        str: The rendered QR receipt page.
+    """
+    order = get_receipt_order_or_404(order_id)
+    qr = receipts.build_qr_receipt(
+        order, lambda token: url_for("customer.public_receipt", token=token, _external=True)
+    )
+    return render_template("receipt_qr.html", order=order, qr=qr,
+                           receipt=receipts.build_receipt(order))
+
+
+@customer_bp.route("/order/<int:order_id>/receipt/email", methods=["POST"])
+def email_receipt(order_id):
+    """
+    Purpose: Emails the receipt (FR-37): written to the outbox now when
+        online, queued while offline (FR-60).
+
+    Args:
+        order_id (int): Transaction ID from the URL.
+
+    Returns:
+        Response: Redirect to the order page with a message.
+    """
+    order = get_receipt_order_or_404(order_id)
+    try:
+        status = receipts.send_email_receipt(order, request.form.get("email"))
+    except receipts.ReceiptError as error:
+        flash(str(error), "error")
+    else:
+        if status == receipts.EMAIL_SENT:
+            flash(f"Receipt sent to {order.receipt_email}.", "success")
+        else:
+            flash(f"Offline: the receipt for {order.receipt_email} will be sent when the "
+                  "connection is back.", "warning")
+    return redirect(url_for("customer.view_order", order_id=order.id))
+
+
+@customer_bp.route("/receipt/<token>")
+def public_receipt(token):
+    """
+    Purpose: The receipt page the QR code links to; anyone with the
+        unguessable link can view it, nothing can be changed.
+
+    Args:
+        token (str): Receipt token from the URL.
+
+    Returns:
+        str: The rendered receipt; 404 for an unknown token.
+    """
+    order = receipts.get_order_by_token(token)
+    if order is None:
+        abort(404)
+    return render_template("receipt.html", receipt=receipts.build_receipt(order))
 
 
 # ---------------------------------------------------------------------------

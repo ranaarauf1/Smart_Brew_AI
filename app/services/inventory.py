@@ -5,6 +5,7 @@ from sqlalchemy import update
 
 from app import db
 from app.models import CustomizationOption, ErrorEvent, Ingredient, utcnow
+from app.services import maintenance
 
 
 class InsufficientStockError(Exception):
@@ -78,15 +79,16 @@ def get_blocking_ingredients(drink):
 
 def is_drink_available(drink):
     """
-    Purpose: Checks whether a drink can be ordered with its base ingredients.
+    Purpose: Checks whether a drink can be ordered: no base ingredient below
+        its threshold and no hardware fault that blocks it (feature 10).
 
     Args:
         drink (Drink): The drink to check.
 
     Returns:
-        bool: True if no base ingredient is below its threshold.
+        bool: True if the drink can be made.
     """
-    return not get_blocking_ingredients(drink)
+    return not get_blocking_ingredients(drink) and not maintenance.get_fault_blockers(drink)
 
 
 def unavailable_message(drink):
@@ -97,10 +99,15 @@ def unavailable_message(drink):
         drink (Drink): The unavailable drink.
 
     Returns:
-        str: User-facing explanation.
+        str: User-facing explanation, e.g. "Espresso is not available right
+            now (low on: Cups; grinder jammed)."
     """
-    names = ", ".join(get_blocking_ingredients(drink))
-    return f"{drink.name} is not available right now (low on: {names})."
+    reasons = []
+    names = get_blocking_ingredients(drink)
+    if names:
+        reasons.append("low on: " + ", ".join(names))
+    reasons.extend(maintenance.get_fault_blockers(drink))
+    return f"{drink.name} is not available right now ({'; '.join(reasons)})."
 
 
 def check_stock(needs):
@@ -287,13 +294,159 @@ def set_stock_level(ingredient_id, raw_value):
         raise StockLevelError("Unknown ingredient.")
     level = parse_stock_level(raw_value, ingredient)
 
-    levels_before = {ingredient.id: ingredient.stock_level}
+    was_below = is_below_threshold(ingredient)
     ingredient.stock_level = level
-    record_threshold_crossings(levels_before, [ingredient])
-
-    open_event = get_open_low_stock_event(ingredient)
-    if open_event is not None and not is_below_threshold(ingredient):
-        open_event.resolved_at = utcnow()
-
+    sync_low_stock_event(ingredient, was_below)
     db.session.commit()
     return ingredient
+
+
+def sync_low_stock_event(ingredient, was_below):
+    """
+    Purpose: Keeps an ingredient's low-threshold event in line after a
+        manual change (Simulation panel or admin mode): opens one when it
+        newly drops below the minimum (FR-67), resolves it when it is at or
+        above again. The caller commits.
+
+    Args:
+        ingredient (Ingredient): The ingredient after the change.
+        was_below (bool): Whether it was below its minimum before.
+
+    Returns:
+        None
+    """
+    open_event = get_open_low_stock_event(ingredient)
+    if is_below_threshold(ingredient):
+        if not was_below and open_event is None:
+            # Treat the old level as "at the minimum" so the crossing is detected
+            record_threshold_crossings({ingredient.id: ingredient.min_threshold}, [ingredient])
+    elif open_event is not None:
+        open_event.resolved_at = utcnow()
+
+
+def get_ingredient(ingredient_id):
+    """
+    Purpose: Loads an ingredient for an admin action.
+
+    Args:
+        ingredient_id (int | None): ID of the ingredient.
+
+    Returns:
+        Ingredient: The ingredient.
+
+    Raises:
+        StockLevelError: If it does not exist.
+    """
+    ingredient = db.session.get(Ingredient, ingredient_id) if ingredient_id else None
+    if ingredient is None:
+        raise StockLevelError("Unknown ingredient.")
+    return ingredient
+
+
+def parse_number(raw_value, label):
+    """
+    Purpose: Parses a number typed in admin mode.
+
+    Args:
+        raw_value (str | float | None): The value from the form.
+        label (str): Field name for the error message.
+
+    Returns:
+        float: The number.
+
+    Raises:
+        StockLevelError: If it is missing, not a number or NaN.
+    """
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError):
+        raise StockLevelError(f"Please enter the {label} as a number.") from None
+    if value != value:  # NaN
+        raise StockLevelError(f"Please enter the {label} as a number.")
+    return value
+
+
+def refill_ingredient(ingredient_id, raw_quantity):
+    """
+    Purpose: Refills an ingredient by a quantity, capped at its capacity
+        (FR-43–52). The caller commits.
+
+    Args:
+        ingredient_id (int | None): ID of the ingredient.
+        raw_quantity (str | float | None): Quantity to add.
+
+    Returns:
+        tuple[Ingredient, float, float]: The ingredient, the level before
+            and the quantity actually added.
+
+    Raises:
+        StockLevelError: If the ingredient is unknown or the quantity is not
+            a positive number.
+    """
+    ingredient = get_ingredient(ingredient_id)
+    quantity = parse_number(raw_quantity, "quantity")
+    if quantity <= 0:
+        raise StockLevelError("The refill quantity must be more than 0.")
+    before = ingredient.stock_level
+    was_below = is_below_threshold(ingredient)
+    ingredient.stock_level = min(ingredient.capacity, before + quantity)
+    sync_low_stock_event(ingredient, was_below)
+    return ingredient, before, ingredient.stock_level - before
+
+
+def reset_ingredient(ingredient_id):
+    """
+    Purpose: Resets an ingredient counter to full capacity. The caller commits.
+
+    Args:
+        ingredient_id (int | None): ID of the ingredient.
+
+    Returns:
+        tuple[Ingredient, float]: The ingredient and its level before.
+
+    Raises:
+        StockLevelError: If the ingredient is unknown.
+    """
+    ingredient = get_ingredient(ingredient_id)
+    before = ingredient.stock_level
+    was_below = is_below_threshold(ingredient)
+    ingredient.stock_level = ingredient.capacity
+    sync_low_stock_event(ingredient, was_below)
+    return ingredient, before
+
+
+def set_limits(ingredient_id, raw_minimum, raw_capacity):
+    """
+    Purpose: Changes an ingredient's minimum threshold and capacity. The
+        minimum must be between 0 and the capacity, and the capacity cannot
+        be below the current stock. The caller commits.
+
+    Args:
+        ingredient_id (int | None): ID of the ingredient.
+        raw_minimum (str | float | None): New minimum.
+        raw_capacity (str | float | None): New capacity.
+
+    Returns:
+        tuple[Ingredient, float, float]: The ingredient and the old minimum
+            and capacity.
+
+    Raises:
+        StockLevelError: If a value is invalid.
+    """
+    ingredient = get_ingredient(ingredient_id)
+    minimum = parse_number(raw_minimum, "minimum")
+    capacity = parse_number(raw_capacity, "capacity")
+    if capacity <= 0:
+        raise StockLevelError("The capacity must be more than 0.")
+    if not 0 <= minimum <= capacity:
+        raise StockLevelError("The minimum must be between 0 and the capacity.")
+    if capacity < ingredient.stock_level:
+        raise StockLevelError(
+            f"The capacity cannot be below the current stock "
+            f"({ingredient.stock_level:g} {ingredient.unit})."
+        )
+    old = (ingredient.min_threshold, ingredient.capacity)
+    was_below = is_below_threshold(ingredient)
+    ingredient.min_threshold, ingredient.capacity = minimum, capacity
+    sync_low_stock_event(ingredient, was_below)
+    return ingredient, *old

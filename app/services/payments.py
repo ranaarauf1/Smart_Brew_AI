@@ -22,7 +22,7 @@ from sqlalchemy import update
 
 from app import db, format_euro
 from app.models import Payment, PrepaidCard, ProcessorCharge, Transaction
-from app.services import card_reader, connectivity, offline, orders, processor
+from app.services import card_reader, connectivity, maintenance, offline, orders, processor
 
 # ---------------------------------------------------------------------------
 # Plain-language error messages with codes (NFR-27)
@@ -393,6 +393,10 @@ def pay(order, method, instrument_id):
         return PaymentOutcome(order, message="Please choose a payment method.")
     if order.status == Transaction.STATUS_PAYMENT_UNKNOWN:
         return PaymentOutcome(order, message=error_message("PAY-502"), category="warning")
+    out_of_service = maintenance.get_out_of_service_reason()
+    if out_of_service:
+        # Feature 10: a full waste bin stops the machine; take no money
+        return PaymentOutcome(order, message=out_of_service)
 
     claimed = db.session.execute(
         update(Transaction)

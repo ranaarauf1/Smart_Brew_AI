@@ -1,11 +1,12 @@
 """Simulation panel: stands in for the machine's hardware and outside
-services (NFC reader, ingredient sensors, weather API and clock)."""
+services (NFC reader, ingredient sensors, waste bins, faults, service key,
+weather API, network, clock and email outbox)."""
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 from app import db
 from app.models import Ingredient, NfcCard, SystemState
-from app.services import auth, clock, connectivity, inventory, offline
+from app.services import admin, auth, clock, connectivity, inventory, maintenance, offline, receipts
 from app.services import weather as weather_service
 
 # Form checkbox name -> service it switches off when checked
@@ -65,6 +66,10 @@ def panel():
         max_temp=weather_service.MAX_TEMP_C,
         queue_counts=offline.get_queue_counts(),
         drop_modes=connectivity.DROP_MODES,
+        bins=maintenance.get_bins(),
+        faults=[(code, info, maintenance.get_active_fault(code) is not None)
+                for code, info in maintenance.FAULTS.items()],
+        outbox=receipts.list_outbox(),
     )
 
 
@@ -81,6 +86,11 @@ def nfc_tap():
             login page with the reason when the card is refused.
     """
     uid = request.form.get("uid", "")
+    if admin.is_master_card(uid):
+        # Feature 10: the technician master card opens admin mode
+        admin.enter_with_nfc(uid)
+        flash("Master card accepted. Admin mode.", "success")
+        return redirect(url_for("admin.dashboard"))
     try:
         user = auth.login_with_nfc(uid)
     except auth.NfcLoginError as error:
@@ -150,6 +160,85 @@ def set_weather():
     else:
         flash("Weather settings saved.", "success")
     return redirect(url_for("simulation.panel", _anchor="weather"))
+
+
+@simulation_bp.route("/service-key", methods=["POST"])
+def service_key():
+    """
+    Purpose: Simulates turning the technician's service key: opens admin mode.
+
+    Args:
+        None
+
+    Returns:
+        Response: Redirect to the admin dashboard.
+    """
+    admin.enter_with_service_key()
+    flash("Service key turned. Admin mode.", "success")
+    return redirect(url_for("admin.dashboard"))
+
+
+@simulation_bp.route("/bins", methods=["POST"])
+def set_bin():
+    """
+    Purpose: Simulates the waste bin sensors: sets a bin's level (0–100 %).
+        The Empty and Full buttons send preset=empty or preset=full.
+
+    Args:
+        None
+
+    Returns:
+        Response: Redirect back to the bins section of the panel.
+    """
+    level = {"empty": 0, "full": 100}.get(request.form.get("preset"), request.form.get("level"))
+    try:
+        bin_ = maintenance.set_bin_level(request.form.get("bin_id", type=int), level)
+    except maintenance.MaintenanceError as error:
+        flash(str(error), "error")
+    else:
+        flash(f"{bin_.name} set to {bin_.level_percent:g}%.", "success")
+    return redirect(url_for("simulation.panel", _anchor="bins"))
+
+
+@simulation_bp.route("/faults", methods=["POST"])
+def trigger_fault():
+    """
+    Purpose: Simulates a hardware fault (Grinder Jammed or Water Heater
+        Fault). It stays active until resolved in admin mode.
+
+    Args:
+        None
+
+    Returns:
+        Response: Redirect back to the faults section of the panel.
+    """
+    try:
+        event = maintenance.trigger_fault(request.form.get("fault"))
+    except maintenance.MaintenanceError as error:
+        flash(str(error), "error")
+    else:
+        if event is None:
+            flash("That fault is already active.", "warning")
+        else:
+            flash(event.message, "warning")
+    return redirect(url_for("simulation.panel", _anchor="faults"))
+
+
+@simulation_bp.route("/outbox/<int:item_id>")
+def view_email(item_id):
+    """
+    Purpose: Opens one receipt email from the outbox (FR-37).
+
+    Args:
+        item_id (int): Queue item ID of the email.
+
+    Returns:
+        str: The rendered email; 404 if it is not an email.
+    """
+    email = receipts.read_email(item_id)
+    if email is None:
+        abort(404)
+    return render_template("outbox_email.html", email=email)
 
 
 @simulation_bp.route("/connectivity", methods=["POST"])

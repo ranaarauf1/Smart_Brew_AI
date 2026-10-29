@@ -38,17 +38,19 @@ def pay(client, order_id, method="card_chip", instrument="visa-4242", **kwargs):
 
 
 @pytest.fixture
-def app():
+def app(tmp_path):
     """
-    Purpose: Creates an app instance backed by a fresh, empty in-memory database.
+    Purpose: Creates an app instance backed by a fresh, empty in-memory
+        database, with the email outbox in a temporary folder so tests never
+        write into data/outbox/.
 
     Args:
-        None
+        tmp_path (Path): Pytest's temporary folder for this test.
 
     Returns:
         Flask: The test application.
     """
-    return create_app(dict(TEST_CONFIG))
+    return create_app({**TEST_CONFIG, "OUTBOX_DIR": str(tmp_path / "outbox")})
 
 
 @pytest.fixture

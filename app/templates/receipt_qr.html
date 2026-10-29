@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}QR receipt – SmartBrew AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('customer.view_order', order_id=order.id) }}">‹ Back</a>
+  <h1>🧾 Your receipt</h1>
+</div>
+
+<div class="qr-layout">
+  <div class="panel qr-panel">
+    <img class="qr-image" src="{{ qr.image }}" alt="QR code receipt">
+    {% if qr.mode == 'link' %}
+      <p class="muted">Scan to open your receipt.</p>
+      <p class="qr-link"><a href="{{ qr.payload }}">{{ qr.payload }}</a></p>
+    {% else %}
+      {# FR-36: offline the QR code holds the receipt text itself #}
+      <p class="muted">Offline: the QR code contains the full receipt.</p>
+    {% endif %}
+  </div>
+  <div class="panel">
+    {% include "_receipt_details.html" %}
+  </div>
+</div>
+{% endblock %}

@@ -61,6 +61,7 @@ def create_app(config_overrides=None):
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         OUTBOX_DIR=str(DATA_DIR / "outbox"),
         SESSION_TIMEOUT_SECONDS=60,  # NFR-14: log out after 60 s inactivity
+        ADMIN_TIMEOUT_SECONDS=120,  # feature 10: leave admin mode after 2 min inactivity
         BCRYPT_ROUNDS=12,
         # Session cookie not readable by JS and not sent on cross-site POSTs
         SESSION_COOKIE_HTTPONLY=True,
@@ -71,6 +72,7 @@ def create_app(config_overrides=None):
 
     db.init_app(app)
 
+    from app.routes.admin import admin_bp
     from app.routes.auth import auth_bp
     from app.routes.customer import customer_bp
     from app.routes.simulation import simulation_bp
@@ -78,6 +80,7 @@ def create_app(config_overrides=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(customer_bp)
     app.register_blueprint(simulation_bp)
+    app.register_blueprint(admin_bp)
 
     app.add_template_filter(format_euro, "euro")
     app.register_error_handler(404, page_not_found)

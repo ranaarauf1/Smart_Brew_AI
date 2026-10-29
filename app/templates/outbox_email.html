@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Outbox email – SmartBrew AI{% endblock %}
+
+{% block status %}<span class="badge-sim">SIMULATION</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a class="btn-back" href="{{ url_for('simulation.panel', _anchor='outbox') }}">‹ Outbox</a>
+  <h1>✉️ Email to {{ email.item.payload.to }}</h1>
+</div>
+<p class="muted">Status: {{ 'Sent' if email.item.status == 'synced' else 'Queued (offline)' }}
+  {% if email.item.payload.file_name %} · file data/outbox/{{ email.item.payload.file_name }}{% endif %}</p>
+<pre class="panel email-content">{{ email.content }}</pre>
+{% endblock %}

@@ -68,6 +68,7 @@
       <p class="muted paid-with">Paid with {{ order.card_brand }} •••• {{ order.card_last4 }}
         {% if prepaid_balance is not none %} · Remaining balance {{ prepaid_balance|euro }}{% endif %}</p>
     {% endif %}
+    {% include "_receipt_actions.html" %}
     <div class="button-grid">
       <a class="btn btn-primary" href="{{ url_for('customer.menu') }}"><span class="btn-icon">☕</span>Another drink</a>
       <a class="btn" href="{{ url_for('customer.home') }}"><span class="btn-icon">🏠</span>Done</a>
@@ -80,6 +81,7 @@
     <h1>Sorry, we couldn't make your drink</h1>
     <p class="subtitle">{{ order.failure_reason }}</p>
     <p class="muted">Nothing was taken from the machine's stock.</p>
+    {% include "_receipt_actions.html" %}
     <div class="button-grid">
       <a class="btn btn-primary" href="{{ url_for('customer.menu', category=order.drink.category_id) }}"><span class="btn-icon">☕</span>Back to menu</a>
     </div>

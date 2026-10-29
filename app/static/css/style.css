@@ -1067,8 +1067,266 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+/* ---------- Receipts (feature 9) ---------- */
+
+.receipt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.receipt-email {
+  display: flex;
+  gap: 8px;
+}
+
+.receipt-email input {
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font: inherit;
+  width: 240px;
+  user-select: text;
+}
+
+.qr-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.qr-panel {
+  text-align: center;
+}
+
+.qr-image {
+  width: 220px;
+  height: 220px;
+  image-rendering: pixelated;
+}
+
+.qr-link {
+  font-size: 13px;
+  word-break: break-all;
+  max-width: 240px;
+}
+
+.receipt {
+  margin: 0;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.receipt dt {
+  font-weight: 600;
+}
+
+.receipt dd {
+  margin: 0;
+  text-align: right;
+}
+
+.receipt-refund dd {
+  color: var(--error);
+  font-weight: 700;
+}
+
+.receipt-page {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.email-content {
+  white-space: pre-wrap;
+  font-size: 16px;
+  user-select: text;
+}
+
+/* ---------- Admin mode and maintenance (feature 10) ---------- */
+
+.out-of-service-banner {
+  padding: 8px 24px;
+  background: var(--error);
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.status-admin {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.staff-link {
+  margin-top: 24px;
+  font-size: 16px;
+}
+
+.staff-link a {
+  color: var(--muted);
+}
+
+.admin-login {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.keypad-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.keypad-form #pin {
+  min-height: 60px;
+  font-size: 32px;
+  text-align: center;
+  letter-spacing: 0.4em;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.key {
+  min-height: 64px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  font-size: 26px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.key-ok {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.lockout {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fdecea;
+  color: var(--error);
+}
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-item-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-fields {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.inline-fields input {
+  width: 100px;
+  min-height: 48px;
+  padding: 6px 8px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font: inherit;
+}
+
+.inline-fields label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.bin-alert { border-color: var(--warn); }
+.bin-full { border-color: var(--error); background: #fdf3f2; }
+.severity-critical { border-color: var(--error); }
+.severity-warning { border-color: var(--warn); }
+
+.next-action {
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  background: #fff;
+}
+
+.log-table th,
+.log-table td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.fault-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
 @media (max-width: 720px) {
   .button-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-layout,
+  .admin-login {
     grid-template-columns: 1fr;
   }
 

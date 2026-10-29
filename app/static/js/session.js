@@ -1,15 +1,17 @@
-// NFR-14: 60 s inactivity countdown for logged-in users.
+// Inactivity countdown, used twice: the 60 s customer session (NFR-14) and
+// the 2-minute admin session (feature 10). The <script> tag says which
+// elements to use (data-countdown-id, data-form-id) and where to ping.
 // Any tap or key press restarts the countdown. Taps also ping the server
 // (at most every 5 s) so its inactivity timer stays in sync, even on pages
-// that do not reload. At 0 the logout form is submitted with reason=timeout.
+// that do not reload. At 0 the form is submitted with reason=timeout.
 (function () {
-  var display = document.getElementById("countdown");
-  var form = document.getElementById("logout-form");
+  var script = document.currentScript;
+  var display = document.getElementById(script.dataset.countdownId || "countdown");
+  var form = document.getElementById(script.dataset.formId || "logout-form");
   if (!display || !form) {
     return;
   }
 
-  var script = document.currentScript;
   var keepaliveUrl = script.dataset.keepaliveUrl;
   var homeUrl = script.dataset.homeUrl;
   var timeout = parseInt(display.dataset.timeout, 10) || 60;

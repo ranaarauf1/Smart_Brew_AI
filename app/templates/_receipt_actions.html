@@ -1,0 +1,11 @@
+{# Feature 9: QR and email receipt, also after the user was logged out #}
+{% if can_receipt %}
+  <div class="receipt-actions">
+    <a class="btn btn-small" href="{{ url_for('customer.qr_receipt', order_id=order.id) }}">🧾 QR receipt</a>
+    <form class="receipt-email" method="post" action="{{ url_for('customer.email_receipt', order_id=order.id) }}" novalidate>
+      <input type="email" name="email" placeholder="your@email.com" aria-label="Email address for the receipt"
+             value="{{ order.receipt_email or '' }}">
+      <button type="submit" class="btn btn-small">✉️ Email receipt</button>
+    </form>
+  </div>
+{% endif %}

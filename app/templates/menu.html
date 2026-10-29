@@ -12,7 +12,14 @@
   {% endif %}
 </div>
 
-{% if not categories %}
+{% if out_of_service %}
+  {# Feature 10: no new drinks while a waste bin is full #}
+  <section class="welcome out-of-service">
+    <span class="detail-icon">⛔</span>
+    <h1>Out of service</h1>
+    <p class="subtitle">{{ out_of_service }}</p>
+  </section>
+{% elif not categories %}
   <p class="muted">The menu is empty. Run <code>python seed.py</code> to load the demo drinks.</p>
 {% else %}
   {# FR-11: one touch per tab; tabs are plain links so they work without JS.

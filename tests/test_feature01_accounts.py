@@ -590,7 +590,8 @@ def test_nfc_tap_with_inactive_card_is_refused(seeded_app, seeded_client):
 
 def test_nfc_tap_with_master_card_does_not_log_in_customer(seeded_client):
     """
-    Purpose: The technician master card is not a customer login.
+    Purpose: The technician master card is not a customer login; it opens
+        admin mode instead (feature 10).
 
     Args:
         seeded_client (FlaskClient): Client for the seeded app.
@@ -603,7 +604,8 @@ def test_nfc_tap_with_master_card_does_not_log_in_customer(seeded_client):
     )
 
     assert logged_in_user_id(seeded_client) is None
-    assert b"admin mode" in response.data
+    assert b"Master card accepted. Admin mode." in response.data
+    assert response.request.path == "/admin/"
 
 
 # ---------------------------------------------------------------------------
