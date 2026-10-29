@@ -4,16 +4,17 @@
 
 {% block content %}
 <div class="page-header">
-  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <a class="btn-back" href="{{ url_for('customer.home') }}">{{ icon('back', 20) }}Back</a>
   <h1>My recipes</h1>
-  <a class="btn-back btn-shortcut" href="{{ url_for('customer.menu') }}">☕ Menu</a>
+  <div class="page-aside">
+    <a class="btn btn-small" href="{{ url_for('customer.menu') }}">Go to the menu</a>
+  </div>
 </div>
 
 {% if not statuses %}
-  <div class="panel empty-state">
+  <div class="empty-state">
     <p class="big">No saved recipes yet</p>
     <p class="muted">Customize a drink and tap "Save as recipe" to order it with one touch next time.</p>
-    <a class="btn btn-primary btn-small" href="{{ url_for('customer.menu') }}">Go to the menu</a>
   </div>
 {% else %}
   <div class="recipe-list">
@@ -21,7 +22,7 @@
       {% set recipe = status.recipe %}
       <article class="recipe-card panel{% if not status.available %} recipe-disabled{% endif %}">
         <div class="recipe-main">
-          <span class="drink-icon">{{ recipe.drink.icon }}</span>
+          {{ drink_icon(recipe.drink, 52) }}
           <div class="recipe-text">
             <p class="recipe-name">{{ recipe.name }}</p>
             <p class="muted">{{ recipe.drink.name }} · {{ status.summary }}</p>

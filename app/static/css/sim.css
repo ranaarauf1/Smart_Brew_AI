@@ -1,0 +1,93 @@
+/* SmartBrew AI – Simulation tool. Deliberately plain: a testing tool with
+   labelled sections, white page, grey rules, compact controls. */
+
+body.look-sim {
+  --sim-bg: #ffffff;
+  --sim-panel: #f6f7f8;
+  --sim-rule: #c4cad0;
+  --sim-ink: #1f2328;        /* 15.8:1 on white */
+  --sim-muted: #57606a;      /* 6.4:1 on white */
+  --sim-accent: #1f5f99;     /* links and primary buttons, 6.9:1 on white */
+  background: var(--sim-bg);
+  color: var(--sim-ink);
+  font-size: var(--t-s);
+}
+
+.look-sim :focus-visible {
+  outline-color: var(--sim-accent);
+}
+
+.sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-5);
+  padding: var(--s-3) var(--s-5);
+  border-bottom: 2px solid var(--sim-ink);
+  background: var(--sim-panel);
+}
+
+.sim-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.sim-name {
+  margin: 0;
+  font-size: var(--t-m);
+  font-weight: 700;
+}
+
+.sim-note {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--sim-muted);
+}
+
+.sim-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.sim-session {
+  font-size: var(--t-xs);
+  color: var(--sim-muted);
+}
+
+.sim-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--s-5);
+}
+
+/* Buttons in the tool: neutral, with a blue primary instead of crema */
+.look-sim .btn {
+  border-color: #8c959f;
+  border-radius: 4px;
+  font-size: var(--t-s);
+}
+
+.look-sim .btn-primary {
+  background: var(--sim-accent);
+  border-color: var(--sim-accent);
+  color: #fff;
+}
+
+.look-sim a {
+  color: var(--sim-accent);
+}
+
+.sim-state {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  padding: var(--s-2) var(--s-5);
+  background: var(--warn-soft);
+  color: var(--crema-ink);
+  font-weight: 700;
+}

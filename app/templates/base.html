@@ -1,63 +1,68 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}SmartBrew AI{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-  <div class="screen">
+{% extends "_layout.html" %}
+{# Customer look: the machine's touchscreen inside a graphite bezel.
+   On small screens the bezel disappears and the screen fills the page. #}
+
+{% block legacy_styles %}{% endblock %}
+
+{% block look_styles %}
+  <link rel="preload" href="{{ url_for('static', filename='fonts/bodoni-moda-latin-500-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/machine.css') }}">
+{% endblock %}
+
+{% block body_class %}look-machine{% endblock %}
+
+{% block body %}
+<div class="machine">
+  <div class="bezel">
     <header class="status-bar">
-      <a class="brand" href="{{ url_for('customer.home') }}">☕ SmartBrew AI</a>
+      <a class="brand" href="{{ url_for('customer.home') }}">SmartBrew<span class="brand-ai"> AI</span></a>
       <div class="status-items">
         {% block status %}{% endblock %}
+        {% if connectivity %}
+          <span class="status-net {{ 'is-offline' if connectivity.offline else '' }}">
+            {{ icon('offline' if connectivity.offline else 'online', 20) }}
+            <span>{{ 'Offline' if connectivity.offline else 'Online' }}</span>
+          </span>
+        {% endif %}
+        {% if admin_actor %}
+          <a class="status-link" href="{{ url_for('admin.dashboard') }}">{{ icon('wrench', 20) }}<span>Service mode</span></a>
+        {% endif %}
         {% if current_user %}
-          <a class="status-user" href="{{ url_for('auth.profile') }}">👤 {{ current_user.name }}</a>
+          <a class="status-link" href="{{ url_for('auth.profile') }}">{{ icon('user', 20) }}<span>{{ current_user.name }}</span></a>
           {# NFR-14: countdown to automatic logout, driven by session.js #}
-          <span class="countdown" title="Automatic logout">⏱ <span id="countdown" data-timeout="{{ session_timeout }}">{{ session_timeout }}</span> s</span>
+          <span class="countdown" title="Automatic logout">{{ icon('timer', 18) }}<span id="countdown" data-timeout="{{ session_timeout }}">{{ session_timeout }}</span> s</span>
           <form id="logout-form" class="inline-form" method="post" action="{{ url_for('auth.logout') }}">
             <input type="hidden" name="reason" value="manual">
             <button type="submit" class="btn-status">Log out</button>
           </form>
         {% endif %}
-        {% if admin_actor %}
-          {# Feature 10: admin mode ends after 2 minutes of inactivity #}
-          <a class="status-admin" href="{{ url_for('admin.dashboard') }}">🔧 Admin</a>
-          <span class="countdown" title="Admin mode ends">⏱ <span id="admin-countdown" data-timeout="{{ admin_timeout }}">{{ admin_timeout }}</span> s</span>
-          <form id="admin-exit-form" class="inline-form" method="post" action="{{ url_for('admin.exit_admin') }}">
-            <input type="hidden" name="reason" value="manual">
-            <button type="submit" class="btn-status">Exit admin</button>
-          </form>
-        {% endif %}
         {% if sim_time %}
-          {# Simulated time of day from the Simulation panel (feature 6) #}
-          <span id="clock" class="clock clock-sim" data-fixed="1">{{ sim_time }} <small>SIM</small></span>
+          {# Simulated time of day from the Simulation tool (feature 6) #}
+          <span id="clock" class="clock num" data-fixed="1">{{ sim_time }} <small>simulated</small></span>
         {% else %}
-          <span id="clock" class="clock"></span>
+          <span id="clock" class="clock num"></span>
         {% endif %}
       </div>
     </header>
 
-    {# FR-53: offline mode banner when the network is down #}
+    {# FR-53: offline mode band when the network is down #}
     {% if connectivity and connectivity.offline %}
-      <div class="offline-banner" role="status">📡 Offline mode – basic ordering. Card payments up to €10 and prepaid cards still work.</div>
+      <div class="band band-offline" role="status">{{ icon('offline', 22) }}<span>Offline mode – basic ordering. Card payments up to €10 and prepaid cards still work.</span></div>
     {% endif %}
     {# Feature 10: a full waste bin stops new drinks #}
     {% if out_of_service %}
-      <div class="out-of-service-banner" role="alert">⛔ {{ out_of_service }}</div>
+      <div class="band band-stop" role="alert">{{ icon('stop', 22) }}<span>{{ out_of_service }}</span></div>
     {% endif %}
 
-    <main class="content">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-          <div class="flash flash-{{ category }}" role="status">{{ message }}</div>
-        {% endfor %}
-      {% endwith %}
+    <main class="screen-area content">
+      {% include "_flashes.html" %}
       {% block content %}{% endblock %}
     </main>
   </div>
+</div>
+{% endblock %}
 
+{% block look_scripts %}
   <script>
     // Status-bar clock, refreshed every second
     (function () {
@@ -85,9 +90,4 @@
   {% if current_user %}
     <script src="{{ url_for('static', filename='js/session.js') }}" data-countdown-id="countdown" data-form-id="logout-form" data-keepalive-url="{{ url_for('auth.keepalive') }}" data-home-url="{{ url_for('customer.home') }}"></script>
   {% endif %}
-  {% if admin_actor %}
-    <script src="{{ url_for('static', filename='js/session.js') }}" data-countdown-id="admin-countdown" data-form-id="admin-exit-form" data-keepalive-url="{{ url_for('admin.keepalive') }}" data-home-url="{{ url_for('customer.home') }}"></script>
-  {% endif %}
-  {% block scripts %}{% endblock %}
-</body>
-</html>
+{% endblock %}

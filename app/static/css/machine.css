@@ -1,0 +1,1582 @@
+/* SmartBrew AI – the machine's touchscreen (customer screens).
+   Materials of a premium Italian espresso machine: enamel green screen,
+   brass hairlines and details, walnut bezel, ivory text. Brass is used for
+   lines, small details and the primary button only – never large areas.
+   Contrast (WCAG 2.1): ivory on enamel 10.1:1, muted ivory 6.9:1,
+   brass-ink text 5.6:1, deep enamel on brass button 5.3:1 (NFR-26). */
+
+/* ---------- Display font: Bodoni Moda (OFL), large text only ---------- */
+
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/bodoni-moda-latin-500-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/bodoni-moda-latin-ext-500-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F,
+    U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/bodoni-moda-latin-400-italic.woff2") format("woff2");
+}
+
+/* ---------- Tokens for this look (override the shared core tokens) ---------- */
+
+body.look-machine {
+  --enamel: #1e3a32;
+  --enamel-deep: #152a24;
+  --enamel-raised: #26473d;
+  --ivory: #efe8da;          /* 10.1:1 on enamel */
+  --ivory-muted: #c9c1b1;    /* 6.9:1 on enamel */
+  --brass: #b59460;          /* lines, outlines, button fill (4.3:1, not for text) */
+  --brass-ink: #c9ab78;      /* brass-coloured text, 5.6:1 on enamel */
+  --walnut: #5b3b27;
+  --walnut-deep: #3b2619;
+  --soft-alert: #f2a28e;     /* errors on green, 6.1:1 */
+  --soft-ok: #a8cba0;        /* success on green, 6.9:1 */
+  --hairline: rgba(181, 148, 96, 0.5);  /* decorative brass dividers */
+  --font-display: "Bodoni Moda", "Didot", Georgia, serif;
+
+  /* Shared core tokens, mapped onto the materials */
+  --screen: var(--enamel);
+  --surface: var(--enamel-deep);
+  --surface-sunk: #10211c;
+  --ink: var(--ivory);
+  --ink-muted: var(--ivory-muted);
+  --line: rgba(239, 232, 218, 0.18);
+  --line-strong: #93a097;    /* control borders, 4.2:1 on enamel (WCAG 1.4.11) */
+  --crema: var(--brass);
+  --crema-ink: var(--brass-ink);
+  --sage: var(--soft-ok);
+  --alert: var(--soft-alert);
+
+  background: #d6cfc2; /* the lounge wall behind the machine */
+}
+
+/* ---------- Frame: walnut bezel with a faint brushed grain ---------- */
+
+.machine {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-5);
+}
+
+.bezel {
+  width: min(1180px, 100%);
+  height: min(800px, calc(100vh - 2 * var(--s-5)));
+  display: flex;
+  flex-direction: column;
+  padding: 0 18px 18px;
+  border-radius: 22px;
+  background-color: var(--walnut-deep);
+  /* Brushed grain: hairline stripes at 2–4 % opacity, CSS only */
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.04) 0 2px, transparent 2px 7px);
+  border: 1px solid #2a1b11;
+}
+
+.screen-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s-6) var(--s-7);
+  background: var(--enamel);
+  color: var(--ivory);
+  border-radius: var(--r-frame);
+  outline: 1px solid var(--brass); /* brass seam between bezel and screen */
+  outline-offset: 0;
+}
+
+/* ---------- Typography for this look ---------- */
+
+.display,
+.screen-area h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+
+.screen-area h1 {
+  font-size: 36px;
+  line-height: 1.1;
+}
+
+.screen-area h2 {
+  font-size: var(--t-m);
+  font-weight: 700;
+}
+
+/* Plain links in brass. :where() keeps this rule weak, so buttons, tabs and
+   tiles that are links keep their own colours (e.g. the brass button text). */
+:where(.screen-area) a {
+  color: var(--brass-ink);
+}
+
+.price-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--brass-ink);
+}
+
+/* ---------- Status bar (on the bezel) ---------- */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  min-height: 62px;
+  padding: var(--s-2) var(--s-2);
+  color: var(--ivory);
+  font-size: var(--t-s);
+}
+
+.brand {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand-ai {
+  font-family: var(--font);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  color: var(--brass-ink);
+  margin-left: 4px;
+}
+
+.status-items {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s-2) var(--s-5);
+}
+
+.status-net,
+.status-link,
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ivory-muted);
+}
+
+.status-link {
+  min-height: 44px;
+  color: var(--ivory);
+  text-decoration: none;
+}
+
+.status-net.is-offline {
+  color: var(--brass-ink);
+  font-weight: 700;
+}
+
+.countdown {
+  color: var(--ivory);
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-warning {
+  color: var(--soft-alert);
+  font-weight: 700;
+}
+
+.btn-status {
+  min-height: 44px;
+  padding: var(--s-1) var(--s-4);
+  border: 1px solid var(--brass);
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--ivory);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.clock {
+  min-width: 3.2em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ivory);
+}
+
+.clock small {
+  margin-left: var(--s-1);
+  font-weight: 400;
+  color: var(--brass-ink);
+}
+
+/* ---------- Bands under the status bar ---------- */
+
+.band {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-control);
+  font-size: var(--t-s);
+  font-weight: 700;
+}
+
+.band-offline {
+  border: 1px solid var(--brass);
+  color: var(--brass-ink);
+}
+
+.band-stop {
+  background: #7d2a1d;      /* ivory on it: 8.2:1 */
+  color: var(--ivory);
+}
+
+/* ---------- Shared pieces ---------- */
+
+.btn {
+  border-width: 1px;
+  background: transparent;
+  color: var(--ivory);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--brass);
+}
+
+.btn:active:not(:disabled) {
+  background: var(--enamel-raised);
+}
+
+.btn-primary {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--enamel-deep);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #c19f6a;
+  border-color: #c19f6a;
+}
+
+.btn-primary:active:not(:disabled) {
+  background: #a5854f;
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: var(--soft-alert);
+  color: var(--soft-alert);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ivory-muted);
+  opacity: 0.7;
+}
+
+.flash {
+  border-left-width: 2px;
+  border-radius: 0;
+  background: var(--enamel-deep);
+  color: var(--ivory);
+  font-weight: 400;
+}
+
+.flash-success { border-left-color: var(--soft-ok); background: var(--enamel-deep); }
+.flash-warning { border-left-color: var(--brass); background: var(--enamel-deep); }
+.flash-error   { border-left-color: var(--soft-alert); background: var(--enamel-deep); }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-5);
+  padding-bottom: var(--s-4);
+  margin-bottom: var(--s-6);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.page-header .page-aside {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 var(--s-3) 0 0;
+  color: var(--ivory-muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.screen-area a.btn-back {
+  color: var(--ivory-muted);
+}
+
+.btn-back:hover {
+  color: var(--ivory);
+}
+
+.muted {
+  color: var(--ivory-muted);
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--hairline);
+  margin: var(--s-5) 0;
+}
+
+.panel {
+  /* Panels are open areas separated by hairlines, not boxed cards */
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.big {
+  font-size: var(--t-l);
+  font-weight: 700;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--ivory-muted);
+  font-size: var(--t-m);
+}
+
+.unavailable-label {
+  color: var(--soft-alert);
+  font-weight: 700;
+}
+
+.drink-icon {
+  display: inline-flex;
+  color: var(--ivory);
+}
+
+/* ---------- Home ---------- */
+
+.home {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 760px;
+  margin: 0 auto;
+  padding-top: var(--s-5);
+}
+
+.home-greeting h1 {
+  font-size: 52px;
+  line-height: 1.05;
+}
+
+.home-greeting p {
+  margin: var(--s-3) 0 0;
+  font-size: var(--t-l);
+  color: var(--ivory-muted);
+}
+
+/* The main action: the large brass button */
+.home-order {
+  justify-content: flex-start;
+  gap: var(--s-5);
+  margin-top: var(--s-7);
+  min-height: 112px;
+  padding: var(--s-4) var(--s-6);
+  text-align: left;
+}
+
+.home-order .icon {
+  color: var(--enamel-deep);
+}
+
+.home-order-title {
+  display: block;
+  font-size: var(--t-xl);
+  line-height: 1.1;
+}
+
+.home-order-note {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--t-s);
+  font-weight: 400;
+}
+
+.home-rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--s-6);
+  border-top: 1px solid var(--hairline);
+}
+
+.home-link {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 76px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--t-l);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.screen-area a.home-link {
+  color: var(--ivory);
+}
+
+.home-link .icon {
+  color: var(--brass);
+}
+
+.home-link-chevron {
+  margin-left: auto;
+  color: var(--ivory-muted);
+  transform: rotate(180deg);
+}
+
+.home-footer {
+  display: flex;
+  gap: var(--s-5);
+  margin: auto 0 0;
+  padding-top: var(--s-6);
+  font-size: var(--t-s);
+}
+
+.screen-area .home-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--ivory-muted);
+}
+
+/* ---------- Menu ---------- */
+
+.menu-context {
+  color: var(--ivory-muted);
+  font-size: var(--t-s);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--s-1) var(--s-5);
+  overflow-x: auto;
+  margin: calc(-1 * var(--s-3)) 0 var(--s-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 52px;
+  padding: 0 var(--s-1);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--ivory-muted);
+  font-weight: 700;
+  text-decoration: none;
+  transition: color var(--m-select), border-color var(--m-select);
+}
+
+.screen-area a.tab {
+  color: var(--ivory-muted);
+}
+
+.screen-area a.tab:hover,
+.screen-area a.tab-active {
+  color: var(--ivory);
+}
+
+.tab-active {
+  border-bottom-color: var(--brass);
+}
+
+.weather-note {
+  margin: 0 0 var(--s-5);
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--brass);
+  color: var(--brass-ink);
+  font-size: var(--t-s);
+}
+
+.drink-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: var(--s-7);
+}
+
+.drink-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "icon name price"
+    "icon note note";
+  align-items: center;
+  column-gap: var(--s-4);
+  min-height: 112px;
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ivory);
+  text-decoration: none;
+}
+
+.screen-area a.drink-card {
+  color: var(--ivory);
+}
+
+.drink-card .drink-icon {
+  grid-area: icon;
+  color: var(--ivory);
+}
+
+.drink-card .drink-icon .icon {
+  width: 44px;
+  height: 44px;
+}
+
+.drink-name {
+  grid-area: name;
+  font-size: var(--t-m);
+  font-weight: 700;
+}
+
+.drink-price {
+  grid-area: price;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--brass-ink);
+}
+
+.top-badge {
+  position: absolute;
+  top: var(--s-2);
+  left: 0;
+  color: var(--brass-ink);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.drink-top {
+  padding-top: 34px;
+}
+
+.top-reason {
+  grid-area: note;
+  color: var(--ivory-muted);
+  font-size: var(--t-xs);
+  font-style: italic;
+}
+
+.drink-card:hover .drink-name {
+  text-decoration: underline;
+  text-decoration-color: var(--brass);
+  text-underline-offset: 5px;
+}
+
+.drink-unavailable {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.drink-unavailable .unavailable-label {
+  grid-area: price;
+  font-size: var(--t-xs);
+}
+
+.out-of-service {
+  max-width: 640px;
+  margin: var(--s-7) auto;
+  text-align: center;
+}
+
+.out-of-service .icon {
+  color: var(--soft-alert);
+}
+
+/* ---------- Drink detail ---------- */
+
+.detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-7);
+  align-items: start;
+}
+
+.detail-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.detail-main .drink-icon {
+  color: var(--brass);
+}
+
+.detail-name {
+  font-size: 44px;
+}
+
+.detail-description {
+  margin: 0;
+  color: var(--ivory-muted);
+  font-size: var(--t-m);
+}
+
+.detail-price {
+  margin: var(--s-3) 0 var(--s-4);
+  font-size: 44px;
+}
+
+.nutrition-title {
+  margin-bottom: var(--s-2);
+  color: var(--ivory-muted);
+  font-size: var(--t-s);
+}
+
+.nutrition {
+  margin: 0;
+}
+
+.nutrition-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.nutrition dt {
+  color: var(--ivory-muted);
+}
+
+.nutrition dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Customize ---------- */
+
+.customize {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--s-7);
+  align-items: start;
+}
+
+.customize-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+.option-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.option-group legend {
+  margin-bottom: var(--s-3);
+  padding: 0;
+  color: var(--ivory-muted);
+  font-size: var(--t-s);
+  font-weight: 700;
+}
+
+.option-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 128px;
+  min-height: 64px;
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  cursor: pointer;
+  transition: border-color var(--m-select), box-shadow var(--m-select);
+}
+
+/* The radio is visually hidden; the whole tile is the touch target */
+.option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.option:hover {
+  border-color: var(--ivory-muted);
+}
+
+/* Selected: brass outline, no fill */
+.option:has(input:checked) {
+  border-color: var(--brass);
+  box-shadow: inset 0 0 0 1px var(--brass);
+}
+
+.option:has(input:focus-visible) {
+  outline: 3px solid var(--brass-ink);
+  outline-offset: 2px;
+}
+
+.option-name {
+  font-weight: 700;
+}
+
+.option-price {
+  color: var(--brass-ink);
+  font-size: var(--t-xs);
+}
+
+.option-disabled {
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: var(--line);
+}
+
+.option-disabled .option-name {
+  color: var(--ivory-muted);
+  text-decoration: line-through;
+}
+
+.out-of-stock-label {
+  color: var(--soft-alert);
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+.shots {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.shots-label {
+  margin-right: var(--s-2);
+}
+
+.stepper {
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ivory);
+  font: inherit;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepper:hover {
+  border-color: var(--brass);
+}
+
+#syrup-shots {
+  width: 64px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.syrup-off [data-group="syrup"] .option-list {
+  opacity: 0.55;
+}
+
+/* Live panel: deep enamel, the only raised area on this screen */
+.live-panel {
+  position: sticky;
+  top: 0;
+  padding: var(--s-5);
+  background: var(--enamel-deep);
+  border-top: 2px solid var(--brass);
+  border-radius: 0 0 var(--r-control) var(--r-control);
+}
+
+.live-summary {
+  margin: var(--s-3) 0 0;
+  color: var(--ivory-muted);
+  font-style: italic;
+  font-size: var(--t-s);
+}
+
+.live-price {
+  margin: var(--s-1) 0 var(--s-3);
+  font-size: 52px;
+  line-height: 1.1;
+}
+
+.live-panel .nutrition-row {
+  padding: var(--s-2) 0;
+  font-size: var(--t-s);
+}
+
+#preview-messages .field-error {
+  color: var(--soft-alert);
+}
+
+.recipe-save {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+}
+
+.form-hint {
+  color: var(--ivory-muted);
+  font-size: var(--t-s);
+}
+
+/* ---------- The cup ---------- */
+
+.cup-figure {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.cup-picture {
+  width: 170px;
+  height: auto;
+  overflow: visible;
+}
+
+.saucer { fill: #f8f5ef; }
+.saucer-well { fill: #e7e0d3; }
+.saucer-rim,
+.cup-rim { fill: none; stroke: var(--brass); stroke-width: 1.6; }
+.cup-handle { fill: none; stroke: #f8f5ef; stroke-width: 9; stroke-linecap: round; }
+.cup-body { fill: #f8f5ef; }
+.cup-shade { fill: #ebe5da; }
+.cup-inside { fill: #e9e2d5; }
+.cup-outline { fill: none; stroke: #d9d1c3; stroke-width: 1; }
+
+.glass-body { fill: rgba(239, 232, 218, 0.07); }
+.glass-edge { fill: none; stroke: var(--ivory); stroke-width: 1.3; opacity: 0.85; }
+.glass-coaster { stroke: var(--brass); stroke-width: 2; }
+
+.cup-layer {
+  transition: y var(--m-fill), height var(--m-fill);
+}
+
+.layer-syrup     { fill: #b8742a; }
+.layer-chocolate { fill: #4e2a18; }
+.layer-espresso  { fill: #2e1b12; }
+.layer-tea       { fill: #9a5a24; }
+.layer-milk      { fill: #efe6d6; }
+.layer-foam      { fill: url(#foam-dots); }
+.foam-base       { fill: #fbf7f0; }
+.foam-bubble     { fill: #e6dccb; }
+.cup-crema       { fill: #9c5f2c; transition: y var(--m-fill); }
+
+.cup-ice rect {
+  fill: rgba(255, 255, 255, 0.38);
+  stroke: var(--ivory);
+  stroke-width: 1;
+}
+
+.cup-steam {
+  fill: none;
+  stroke: var(--ivory);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0.75;
+  transition: opacity var(--m-select);
+}
+
+.is-off {
+  opacity: 0;
+}
+
+.cup-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--t-xs);
+}
+
+.cup-legend li {
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 3px 0;
+}
+
+.cup-legend .num {
+  margin-left: auto;
+  color: var(--ivory-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(239, 232, 218, 0.4);
+}
+
+.swatch-syrup     { background: #b8742a; }
+.swatch-chocolate { background: #4e2a18; }
+.swatch-espresso  { background: #2e1b12; }
+.swatch-tea       { background: #9a5a24; }
+.swatch-milk      { background: #efe6d6; }
+.swatch-foam      { background: #fbf7f0; }
+
+/* ---------- Payment ---------- */
+
+.order-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding-bottom: var(--s-5);
+  margin-bottom: var(--s-6);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.order-summary .drink-icon {
+  color: var(--brass);
+}
+
+.order-summary-text {
+  flex: 1;
+}
+
+.order-summary-price {
+  font-size: 40px;
+}
+
+.pay-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+
+.pay-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 148px;
+  padding: var(--s-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  color: var(--ivory);
+  text-align: left;
+  text-decoration: none;
+}
+
+.screen-area a.pay-option {
+  color: var(--ivory);
+}
+
+.pay-option .icon {
+  color: var(--brass);
+}
+
+.pay-option:hover {
+  border-color: var(--brass);
+}
+
+.pay-label {
+  font-size: var(--t-m);
+  font-weight: 700;
+}
+
+.pay-note {
+  font-size: var(--t-xs);
+  font-weight: 400;
+  color: var(--ivory-muted);
+}
+
+.pay-offline {
+  border-color: var(--brass);
+}
+
+.pay-disabled {
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: var(--line);
+}
+
+.pay-disabled .icon {
+  color: var(--ivory-muted);
+  opacity: 0.6;
+}
+
+.pay-disabled .pay-label {
+  color: var(--ivory-muted);
+}
+
+.pay-disabled .pay-note {
+  color: var(--soft-alert);
+}
+
+.reader-note {
+  color: var(--ivory-muted);
+  font-size: var(--t-s);
+}
+
+.instrument-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--hairline);
+}
+
+.instrument-list form {
+  margin: 0;
+}
+
+.instrument {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "label action"
+    "note action";
+  align-items: center;
+  width: 100%;
+  min-height: 84px;
+  padding: var(--s-3) 0;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ivory);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.instrument-label {
+  grid-area: label;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.instrument-note {
+  grid-area: note;
+  color: var(--ivory-muted);
+  font-size: var(--t-xs);
+}
+
+.instrument-action {
+  grid-area: action;
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 var(--s-5);
+  border: 1px solid var(--brass);
+  border-radius: var(--r-control);
+  font-weight: 700;
+}
+
+.instrument:hover .instrument-action {
+  background: var(--brass);
+  color: var(--enamel-deep);
+}
+
+/* ---------- Result, receipts ---------- */
+
+.result {
+  max-width: 680px;
+  margin: var(--s-6) auto 0;
+  text-align: center;
+}
+
+.result .drink-icon {
+  color: var(--brass);
+}
+
+.result h1 {
+  margin: var(--s-4) 0 var(--s-2);
+  font-size: 44px;
+}
+
+.result .icon-mark {
+  color: var(--brass);
+}
+
+.result-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+}
+
+.paid-with {
+  color: var(--ivory-muted);
+}
+
+.receipt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--hairline);
+}
+
+.receipt-email {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.receipt-email input {
+  width: 250px;
+}
+
+.qr-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--s-7);
+  align-items: start;
+}
+
+.qr-panel {
+  text-align: center;
+}
+
+.qr-image {
+  width: 232px;
+  height: 232px;
+  padding: 10px;
+  background: #fff; /* scanners need a light quiet zone */
+  border: 1px solid var(--brass);
+  image-rendering: pixelated;
+}
+
+.qr-link {
+  max-width: 250px;
+  font-size: var(--t-xs);
+  word-break: break-all;
+}
+
+.receipt {
+  margin: 0;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.receipt dt {
+  color: var(--ivory-muted);
+}
+
+.receipt dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.receipt-refund dd {
+  color: var(--soft-alert);
+}
+
+.receipt-page {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ---------- Forms: log in, create account ---------- */
+
+.touch-form {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.field input,
+.field select {
+  background: var(--enamel-deep);
+}
+
+/* ---------- Profile ---------- */
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-7);
+  margin-bottom: var(--s-6);
+}
+
+.section-title {
+  margin-bottom: var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ivory-muted);
+  font-size: var(--t-s);
+  font-weight: 700;
+}
+
+.link-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+.order-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.order-row {
+  display: grid;
+  grid-template-columns: 150px 1fr auto auto;
+  gap: var(--s-4);
+  align-items: center;
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.order-date {
+  color: var(--ivory-muted);
+  font-size: var(--t-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-drink .muted {
+  display: block;
+  font-size: var(--t-s);
+}
+
+.order-price {
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  font-size: var(--t-xs);
+  font-weight: 700;
+  color: var(--ivory-muted);
+}
+
+.status-completed { color: var(--soft-ok); }
+.status-cancelled { color: var(--soft-alert); }
+.status-pending   { color: var(--brass-ink); }
+
+/* ---------- Recipes ---------- */
+
+.recipe-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--hairline);
+}
+
+.recipe-card {
+  padding: var(--s-5) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.recipe-main {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+}
+
+.recipe-main .drink-icon {
+  color: var(--brass);
+}
+
+.recipe-text {
+  flex: 1;
+}
+
+.recipe-text p {
+  margin: 0 0 2px;
+}
+
+.recipe-name {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.recipe-text .drink-price {
+  font-size: 24px;
+}
+
+.recipe-order {
+  min-width: 140px;
+  min-height: 60px;
+}
+
+.recipe-disabled .recipe-name,
+.recipe-disabled .drink-icon {
+  opacity: 0.6;
+}
+
+.recipe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  padding-left: 76px;
+}
+
+.rename-form {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.rename-form input {
+  width: 230px;
+  min-height: 44px;
+}
+
+.delete-confirm summary {
+  list-style: none;
+}
+
+.delete-confirm summary::-webkit-details-marker {
+  display: none;
+}
+
+.delete-box {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-left: 2px solid var(--soft-alert);
+  background: var(--enamel-deep);
+}
+
+.empty-state {
+  max-width: 560px;
+  margin: var(--s-6) auto;
+  text-align: center;
+}
+
+/* ---------- Smaller screens ---------- */
+
+@media (max-width: 1100px) {
+  .drink-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--s-6);
+  }
+
+  .pay-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .customize {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: var(--s-6);
+  }
+}
+
+/* Phones and narrow windows: no bezel, the app fills the screen */
+@media (max-width: 760px) {
+  body.look-machine {
+    background: var(--enamel);
+  }
+
+  .machine {
+    display: block;
+    padding: 0;
+  }
+
+  .bezel {
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .status-bar {
+    padding: var(--s-2) var(--s-4);
+    font-size: var(--t-xs);
+  }
+
+  .status-items {
+    flex-wrap: nowrap;
+    gap: var(--s-3);
+  }
+
+  .brand {
+    font-size: 20px;
+  }
+
+  .btn-status {
+    padding: var(--s-1) var(--s-3);
+  }
+
+  /* Icons only on phones; the words stay available to screen readers */
+  .status-net span,
+  .status-link span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .clock {
+    display: none;
+  }
+
+  .band {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .screen-area {
+    padding: var(--s-5) var(--s-4);
+    border-radius: 0;
+    outline: 0;
+    border-top: 1px solid var(--brass);
+  }
+
+  .screen-area h1 {
+    font-size: 30px;
+  }
+
+  .home-greeting h1 {
+    font-size: 38px;
+  }
+
+  .home-order {
+    margin-top: var(--s-6);
+    min-height: 96px;
+    padding: var(--s-3) var(--s-4);
+    gap: var(--s-3);
+  }
+
+  .home-order-title {
+    font-size: var(--t-l);
+  }
+
+  .drink-grid,
+  .detail,
+  .customize,
+  .qr-layout,
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: var(--s-5);
+  }
+
+  .drink-card {
+    min-height: 96px;
+  }
+
+  .pay-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-3);
+  }
+
+  .pay-option {
+    min-height: 120px;
+  }
+
+  /* On phones the cup, price and Confirm come first, above the options */
+  .live-panel {
+    position: static;
+    order: -1;
+  }
+
+  .cup-figure {
+    grid-template-columns: 150px 1fr;
+  }
+
+  .cup-picture {
+    width: 150px;
+  }
+
+  .detail-name,
+  .detail-price,
+  .result h1 {
+    font-size: 34px;
+  }
+
+  .order-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .recipe-actions {
+    padding-left: 0;
+  }
+
+  .rename-form input,
+  .receipt-email input {
+    width: 100%;
+  }
+
+  .instrument {
+    grid-template-columns: 1fr;
+    grid-template-areas: "label" "note" "action";
+    gap: var(--s-2);
+  }
+
+  .instrument-action {
+    justify-content: center;
+  }
+}
+
+.touch-form-wrap {
+  max-width: 560px;
+  margin: 0 auto;
+}

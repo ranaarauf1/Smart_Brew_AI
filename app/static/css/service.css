@@ -1,0 +1,101 @@
+/* SmartBrew AI – service mode (admin, feature 10). Utilitarian: dark slate
+   header, left navigation, dense tables, status colours. */
+
+body.look-service {
+  --svc-header: #1e252c;
+  --svc-header-ink: #e8ecef;   /* 14.6:1 on the header */
+  --svc-header-muted: #b4bdc6; /* 8.4:1 on the header */
+  --svc-bg: #f3f5f7;
+  --svc-panel: #ffffff;
+  --svc-rule: #c8cfd6;
+  --svc-ink: #1b2128;          /* 15.6:1 on white */
+  --svc-muted: #525c66;        /* 6.9:1 on white */
+  --svc-ok: #2f6b3f;
+  --svc-warn: #8a5520;
+  --svc-bad: #b5412c;
+  background: var(--svc-bg);
+  color: var(--svc-ink);
+  font-size: var(--t-s);
+}
+
+.svc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-5);
+  padding: var(--s-2) var(--s-5);
+  min-height: 64px;
+  background: var(--svc-header);
+  color: var(--svc-header-ink);
+}
+
+.svc-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.svc-name {
+  font-size: var(--t-m);
+  font-weight: 700;
+}
+
+.svc-meta {
+  color: var(--svc-header-muted);
+  font-size: var(--t-xs);
+}
+
+.svc-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.svc-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.svc-countdown.countdown-warning {
+  color: #ffb4a3;
+  font-weight: 700;
+}
+
+.look-service .svc-header .btn {
+  background: transparent;
+  border-color: var(--svc-header-muted);
+  color: var(--svc-header-ink);
+}
+
+.svc-band {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-5);
+  background: var(--svc-bad);
+  color: #fff;
+  font-weight: 700;
+}
+
+.svc-body {
+  display: flex;
+  align-items: flex-start;
+}
+
+.svc-main {
+  flex: 1;
+  min-width: 0;
+  max-width: 1200px;
+  padding: var(--s-5);
+}
+
+.look-service .btn {
+  border-radius: 4px;
+}
+
+.look-service :focus-visible {
+  outline-color: #1f5f99;
+}

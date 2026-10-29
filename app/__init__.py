@@ -83,6 +83,12 @@ def create_app(config_overrides=None):
     app.register_blueprint(admin_bp)
 
     app.add_template_filter(format_euro, "euro")
+
+    from app import ui
+
+    app.add_template_global(ui.render_icon, "icon")
+    app.add_template_global(ui.render_drink_icon, "drink_icon")
+    app.add_template_global(ui.day_greeting, "day_greeting")
     app.register_error_handler(404, page_not_found)
 
     with app.app_context():

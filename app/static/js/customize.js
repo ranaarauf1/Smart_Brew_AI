@@ -16,6 +16,8 @@
   var messagesEl = document.getElementById("preview-messages");
   var confirmButton = document.getElementById("confirm-button");
   var requestNumber = 0; // only the newest response is displayed
+  // Cup layers, bottom to top (same order as services/cup.py)
+  var LAYER_ORDER = ["syrup", "chocolate", "espresso", "tea", "milk", "foam"];
 
   /**
    * Purpose: Reads the value of the checked radio button of one group.
@@ -117,6 +119,92 @@
   }
 
   /**
+   * Purpose: Sets a cup layer's position and height. The attributes keep it
+   *   correct everywhere; the style properties let browsers that support
+   *   it animate the change (CSS transition, off with reduced motion).
+   *
+   * Args:
+   *   el (SVGElement): The layer rectangle.
+   *   y (number): Top edge in SVG units.
+   *   height (number): Height in SVG units.
+   *
+   * Returns:
+   *   undefined
+   */
+  function placeLayer(el, y, height) {
+    el.setAttribute("y", y.toFixed(1));
+    el.setAttribute("height", height.toFixed(1));
+    el.style.y = y.toFixed(1) + "px";
+    el.style.height = height.toFixed(1) + "px";
+  }
+
+  /**
+   * Purpose: Redraws the cup from the layers the server sent (FR-13): each
+   *   layer's millilitres become a height on the vessel's scale. Also
+   *   updates steam, ice, the legend and the screen-reader description.
+   *
+   * Args:
+   *   cup (Object): The "cup" part of the preview (see services/cup.py).
+   *
+   * Returns:
+   *   undefined
+   */
+  function showCup(cup) {
+    var svg = document.getElementById("cup-picture");
+    var legend = document.getElementById("cup-legend");
+    if (!svg || !cup) {
+      return;
+    }
+    var top = parseFloat(svg.dataset.top);
+    var bottom = parseFloat(svg.dataset.bottom);
+    var capacity = cup.capacity_ml;
+    var amounts = {};
+    cup.layers.forEach(function (layer) { amounts[layer.kind] = layer.ml; });
+
+    var y = bottom;
+    var total = 0;
+    var espressoTop = null;
+    LAYER_ORDER.forEach(function (kind) {
+      var ml = amounts[kind] || 0;
+      var height = Math.min(ml, Math.max(capacity - total, 0)) / capacity * (bottom - top);
+      y -= height;
+      total += ml;
+      placeLayer(document.getElementById("cup-layer-" + kind), y, height);
+      if (kind === "espresso" && height > 0) {
+        espressoTop = y;
+      }
+    });
+
+    var crema = document.getElementById("cup-crema");
+    crema.classList.toggle("is-off", espressoTop === null);
+    placeLayer(crema, espressoTop === null ? bottom : espressoTop, 2.5);
+
+    var ice = document.getElementById("cup-ice");
+    if (ice) {
+      ice.setAttribute("transform", "translate(0 " + (y - 30).toFixed(1) + ")");
+    }
+    [1, 2, 3].forEach(function (n) {
+      document.getElementById("cup-steam-" + n).classList.toggle("is-off", n > cup.steam);
+    });
+    svg.setAttribute("aria-label", cup.description);
+
+    legend.replaceChildren();
+    cup.layers.slice().reverse().forEach(function (layer) {
+      var item = document.createElement("li");
+      var swatch = document.createElement("span");
+      var amount = document.createElement("span");
+      swatch.className = "swatch swatch-" + layer.kind;
+      swatch.setAttribute("aria-hidden", "true");
+      amount.className = "num";
+      amount.textContent = layer.ml + " ml";
+      item.appendChild(swatch);
+      item.appendChild(document.createTextNode(layer.label));
+      item.appendChild(amount);
+      legend.appendChild(item);
+    });
+  }
+
+  /**
    * Purpose: Displays a preview response from the server.
    *
    * Args:
@@ -131,6 +219,7 @@
       priceEl.textContent = data.price;
       summaryEl.textContent = data.summary;
       showNutrition(data.nutrition);
+      showCup(data.cup);
       showMessages(data.stock_problems);
       confirmButton.disabled = !data.can_order;
     } else {

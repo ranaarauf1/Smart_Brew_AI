@@ -3,25 +3,30 @@
 {% block title %}{{ option.label }} – SmartBrew AI{% endblock %}
 
 {% block content %}
+{% set action = 'Pay with this phone' if option.method in ('apple_pay', 'google_pay') else 'Pay with this card' %}
 <div class="page-header">
-  <a class="btn-back" href="{{ url_for('customer.view_order', order_id=order.id) }}">‹ Other method</a>
-  <h1>{{ option.icon }} {{ option.prompt }}</h1>
+  <a class="btn-back" href="{{ url_for('customer.view_order', order_id=order.id) }}">{{ icon('back', 20) }}Other payment method</a>
+  <h1>{{ option.prompt }}</h1>
+  <div class="page-aside">
+    <span class="big">{{ order.drink.name }}</span>
+    <span class="order-summary-price price-display">{{ order.amount_cents|euro }}</span>
+  </div>
 </div>
 
-<p class="big">{{ order.drink.name }} · {{ order.amount_cents|euro }}</p>
 {% if option.note %}<p class="weather-note">{{ option.note }}</p>{% endif %}
 
-{# Simulated reader: pick the demo card or phone to present (no real cards) #}
-<p class="muted">Simulation: choose what to present to the reader.</p>
+{# Simulated reader: choose the demo card or phone to present (no real cards) #}
+<p class="reader-note">Simulation: choose what to present to the reader.</p>
 {% if instruments %}
   <div class="instrument-list">
     {% for instrument in instruments %}
       <form method="post" action="{{ url_for('customer.pay', order_id=order.id) }}">
         <input type="hidden" name="method" value="{{ option.method }}">
         <input type="hidden" name="instrument" value="{{ instrument.id }}">
-        <button type="submit" class="btn instrument">
+        <button type="submit" class="instrument">
           <span class="instrument-label">{{ instrument.label }}</span>
-          <span class="muted instrument-note">{{ instrument.note }}</span>
+          <span class="instrument-note">{{ instrument.note }}</span>
+          <span class="instrument-action">{{ action }}</span>
         </button>
       </form>
     {% endfor %}

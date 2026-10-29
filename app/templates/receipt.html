@@ -3,11 +3,11 @@
 {% block title %}Receipt #{{ receipt.order_id }} – SmartBrew AI{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1>🧾 Receipt #{{ receipt.order_id }}</h1>
-</div>
-<div class="panel receipt-page">
+<div class="receipt-page">
+  <div class="page-header">
+    <h1>Receipt #{{ receipt.order_id }}</h1>
+  </div>
   {% include "_receipt_details.html" %}
-  <p class="muted">Thank you for your order!</p>
+  <p class="muted">Thank you for your order.</p>
 </div>
 {% endblock %}

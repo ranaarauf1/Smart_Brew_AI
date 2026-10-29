@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from app import format_euro
 from app.models import CustomizationOption, Drink, Ingredient
-from app.services import inventory
+from app.services import cup, inventory
 from app.services.menu import base_nutrition, format_nutrition
 
 MIN_SYRUP_SHOTS = 0
@@ -480,8 +480,8 @@ def build_preview(drink, data):
 
     Returns:
         dict: JSON-ready preview with keys ok, errors, out_of_stock_option_ids
-            and, when ok, price_cents, price, nutrition, summary, can_order
-            and stock_problems.
+            and, when ok, price_cents, price, nutrition, summary, can_order,
+            stock_problems and cup (the layer picture, see services/cup.py).
     """
     preview = {
         "ok": False,
@@ -498,8 +498,10 @@ def build_preview(drink, data):
         return preview
 
     price = compute_price(drink, selection)
-    shortages = inventory.check_stock(compute_ingredients(drink, selection))
+    needs = compute_ingredients(drink, selection)
+    shortages = inventory.check_stock(needs)
     preview.update({
+        "cup": cup.describe_cup(drink, selection, needs),  # picture of the drink's layers
         "ok": True,
         "price_cents": price,
         "price": format_euro(price),

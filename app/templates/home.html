@@ -1,44 +1,38 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="welcome">
-  {% if current_user %}
-    <h1>Hi {{ current_user.name }}!</h1>
-    <p class="subtitle">What would you like today?</p>
-  {% else %}
-    <h1>Good to see you!</h1>
-    <p class="subtitle">Tap a button to get started.</p>
-  {% endif %}
-
-  <div class="button-grid">
-    <a class="btn btn-primary" href="{{ url_for('customer.menu') }}">
-      <span class="btn-icon">☕</span>
-      Menu
-    </a>
+<section class="home">
+  <header class="home-greeting">
     {% if current_user %}
-      <a class="btn" href="{{ url_for('customer.recipe_list') }}">
-        <span class="btn-icon">⭐</span>
-        My recipes
-      </a>
-      <a class="btn" href="{{ url_for('auth.profile') }}">
-        <span class="btn-icon">👤</span>
-        My profile
-      </a>
+      <h1>{{ day_greeting() }}, {{ current_user.name.split()[0] }}.</h1>
     {% else %}
-      <a class="btn" href="{{ url_for('auth.login') }}">
-        <span class="btn-icon">🔑</span>
-        Log in
-      </a>
-      <a class="btn" href="{{ url_for('auth.register') }}">
-        <span class="btn-icon">✨</span>
-        Create account
-      </a>
+      <h1>{{ day_greeting() }}.</h1>
     {% endif %}
-    <a class="btn btn-sim" href="{{ url_for('simulation.panel') }}">
-      <span class="btn-icon">🛠️</span>
-      Simulation
-    </a>
-  </div>
-  <p class="staff-link"><a href="{{ url_for('admin.login') }}">🔧 Staff</a></p>
+    <p>What shall we make for you?</p>
+  </header>
+
+  {# The main action is the most obvious thing on the screen #}
+  <a class="btn btn-primary home-order" href="{{ url_for('customer.menu') }}">
+    {{ icon('espresso', 44) }}
+    <span>
+      <span class="home-order-title">Order a drink</span>
+      <span class="home-order-note">Menu – recommended for you</span>
+    </span>
+  </a>
+
+  <nav class="home-rows" aria-label="Account">
+    {% if current_user %}
+      <a class="home-link" href="{{ url_for('customer.recipe_list') }}">{{ icon('star', 26) }}My recipes{{ icon('back', 22, cls='home-link-chevron') }}</a>
+      <a class="home-link" href="{{ url_for('auth.profile') }}">{{ icon('user', 26) }}My profile{{ icon('back', 22, cls='home-link-chevron') }}</a>
+    {% else %}
+      <a class="home-link" href="{{ url_for('auth.login') }}">{{ icon('key', 26) }}Log in{{ icon('back', 22, cls='home-link-chevron') }}</a>
+      <a class="home-link" href="{{ url_for('auth.register') }}">{{ icon('user-plus', 26) }}Create account{{ icon('back', 22, cls='home-link-chevron') }}</a>
+    {% endif %}
+  </nav>
+
+  <p class="home-footer">
+    <a href="{{ url_for('admin.login') }}">{{ icon('wrench', 18) }}Staff</a>
+    <a href="{{ url_for('simulation.panel') }}">{{ icon('sliders', 18) }}Simulation tool</a>
+  </p>
 </section>
 {% endblock %}

@@ -1,0 +1,100 @@
+{#
+  Macro cup_picture(cup, serving)
+  Purpose: Draws the drink as a cutaway porcelain cup on a saucer (hot) or a
+      glass on a brass coaster (iced), with its layers to scale. The layer
+      amounts come from Python (services/cup.py); customize.js redraws them
+      when an option changes. Every layer kind is always drawn (empty ones
+      with height 0) so the script can animate them.
+  Args:
+      cup (dict | None): Result of cup.describe_cup(), or None if the
+          current choices are invalid (an empty vessel is drawn).
+      serving (str): Drink.serving ("hot" or "iced"), picks the vessel.
+  Returns:
+      The <figure> with the SVG and its legend.
+#}
+{% macro cup_picture(cup, serving) %}
+  {% set iced = serving == 'iced' %}
+  {% set top = 33 if iced else 74 %}
+  {% set bottom = 209 if iced else 194 %}
+  {% set capacity = (cup.capacity_ml if cup else (450 if iced else 400)) %}
+  {% set amounts = {} %}
+  {% if cup %}{% for layer in cup.layers %}{% set _ = amounts.update({layer.kind: layer.ml}) %}{% endfor %}{% endif %}
+  {% set clip = 'glass-clip' if iced else 'cup-clip' %}
+  <figure class="cup-figure">
+    <svg id="cup-picture" class="cup-picture {{ 'is-glass' if iced else 'is-cup' }}" viewBox="0 0 260 236"
+         data-top="{{ top }}" data-bottom="{{ bottom }}" data-capacity="{{ capacity }}"
+         role="img" aria-label="{{ cup.description if cup else ('Glass' if iced else 'Cup') }}">
+      <defs>
+        <clipPath id="cup-clip"><path d="M69 74 H191 C191 140 179 192 146 194 H114 C81 192 69 140 69 74 Z"/></clipPath>
+        <clipPath id="glass-clip"><path d="M81 33 H179 L167.5 209 H92.5 Z"/></clipPath>
+        <pattern id="foam-dots" width="9" height="7" patternUnits="userSpaceOnUse">
+          <rect width="9" height="7" class="foam-base"/>
+          <circle cx="2" cy="2" r="0.9" class="foam-bubble"/>
+          <circle cx="6.5" cy="5" r="0.7" class="foam-bubble"/>
+        </pattern>
+      </defs>
+
+      {# Steam: warm 1, hot 2, extra hot 3 (static) #}
+      {% set steam = cup.steam if cup else (0 if iced else 2) %}
+      {% for x in (112, 130, 148) %}
+        <path id="cup-steam-{{ loop.index }}" class="cup-steam{{ '' if loop.index <= steam else ' is-off' }}"
+              d="M{{ x }} 60 c-7 -8 7 -14 0 -22 c-6 -7 4 -12 0 -18"/>
+      {% endfor %}
+
+      {% if iced %}
+        <line class="glass-coaster" x1="66" y1="215" x2="194" y2="215"/>
+        <path class="glass-body" d="M78 30 H182 L170 212 H90 Z"/>
+      {% else %}
+        <ellipse class="saucer" cx="130" cy="212" rx="112" ry="15"/>
+        <ellipse class="saucer-well" cx="130" cy="208" rx="54" ry="6"/>
+        <ellipse class="saucer-rim" cx="130" cy="212" rx="112" ry="15"/>
+        <path class="cup-handle" d="M196 96 C236 96 236 158 188 160"/>
+        <path class="cup-body" d="M62 70 H198 C198 142 184 198 148 200 H112 C76 198 62 142 62 70 Z"/>
+        <path class="cup-shade" d="M170 70 H198 C198 142 184 198 148 200 H142 C168 190 178 140 170 70 Z"/>
+        <rect class="cup-inside" x="60" y="70" width="140" height="130" clip-path="url(#cup-clip)"/>
+      {% endif %}
+
+      {# Layers, bottom to top, drawn to scale of the vessel's capacity #}
+      <g clip-path="url(#{{ clip }})">
+        {% set state = {'y': bottom, 'total': 0, 'espresso_top': none} %}
+        {% for kind in ('syrup', 'chocolate', 'espresso', 'tea', 'milk', 'foam') %}
+          {% set ml = amounts.get(kind, 0) %}
+          {% set room = [capacity - state.total, 0] | max %}
+          {% set h = ([ml, room] | min) / capacity * (bottom - top) %}
+          {% set y = state.y - h %}
+          <rect id="cup-layer-{{ kind }}" class="cup-layer layer-{{ kind }}" x="60" width="140"
+                y="{{ '%.1f' | format(y) }}" height="{{ '%.1f' | format(h) }}"/>
+          {% if kind == 'espresso' %}{% set _ = state.update({'espresso_top': y if h > 0 else none}) %}{% endif %}
+          {% set _ = state.update({'y': y, 'total': state.total + ml}) %}
+        {% endfor %}
+        <rect id="cup-crema" class="cup-crema{{ '' if state.espresso_top is not none else ' is-off' }}" x="60" width="140" height="2.5"
+              y="{{ '%.1f' | format(state.espresso_top if state.espresso_top is not none else bottom) }}"/>
+        {% if iced %}
+          {# Ice floats near the top of the drink #}
+          <g id="cup-ice" class="cup-ice" transform="translate(0 {{ '%.1f' | format(state.y - 30) }})">
+            <rect x="100" y="4" width="22" height="20" rx="4" transform="rotate(-8 111 14)"/>
+            <rect x="128" y="10" width="22" height="20" rx="4" transform="rotate(10 139 20)"/>
+            <rect x="112" y="24" width="20" height="18" rx="4" transform="rotate(4 122 33)"/>
+          </g>
+        {% endif %}
+      </g>
+
+      {% if iced %}
+        <path class="glass-edge" d="M78 30 H182 L170 212 H90 Z"/>
+      {% else %}
+        <path class="cup-outline" d="M62 70 H198 C198 142 184 198 148 200 H112 C76 198 62 142 62 70 Z"/>
+        <ellipse class="cup-rim" cx="130" cy="71" rx="68" ry="4.5"/>
+      {% endif %}
+    </svg>
+
+    <figcaption>
+      <ul id="cup-legend" class="cup-legend">
+        {% if cup %}
+          {% for layer in cup.layers | reverse %}
+            <li><span class="swatch swatch-{{ layer.kind }}" aria-hidden="true"></span>{{ layer.label }}<span class="num">{{ layer.ml }} ml</span></li>
+          {% endfor %}
+        {% endif %}
+      </ul>
+    </figcaption>
+  </figure>
+{% endmacro %}

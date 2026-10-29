@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% from "_cup.html" import cup_picture %}
 
 {% block title %}Customize {{ drink.name }} – SmartBrew AI{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <a class="btn-back" href="{{ url_for('customer.drink_detail', drink_id=drink.id) }}">‹ Back</a>
-  <h1>{{ drink.icon }} {{ drink.name }}</h1>
+  <a class="btn-back" href="{{ url_for('customer.drink_detail', drink_id=drink.id) }}">{{ icon('back', 20) }}{{ drink.name }} details</a>
+  <h1 class="detail-name">{{ drink.name }}</h1>
 </div>
 
 {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
@@ -52,8 +53,10 @@
   </div>
 
   <aside class="panel live-panel" aria-live="polite">
+    {# The drink drawn to scale; customize.js redraws it from the preview #}
+    {{ cup_picture(preview.get('cup'), drink.serving) }}
     <p class="live-summary" id="preview-summary">{{ preview.get('summary', '') }}</p>
-    <p class="live-price" id="preview-price">{{ preview.get('price', '–') }}</p>
+    <p class="live-price price-display" id="preview-price">{{ preview.get('price', '–') }}</p>
     <dl class="nutrition" id="preview-nutrition">
       {% for label, value in preview.get('nutrition', []) %}
         <div class="nutrition-row"><dt>{{ label }}</dt><dd>{{ value }}</dd></div>

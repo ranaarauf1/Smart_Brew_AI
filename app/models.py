@@ -158,7 +158,7 @@ class Drink(db.Model):
     fat_g = db.Column(db.Float, nullable=False, default=0)
     protein_g = db.Column(db.Float, nullable=False, default=0)
     caffeine_mg = db.Column(db.Integer, nullable=False, default=0)
-    icon = db.Column(db.String(8), nullable=False, default="☕")  # emoji shown on the menu
+    icon = db.Column(db.String(12), nullable=False, default="espresso")  # icon type, see app/ui.py
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     category = db.relationship("Category", back_populates="drinks")

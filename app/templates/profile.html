@@ -4,21 +4,21 @@
 
 {% block content %}
 <div class="page-header">
-  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <a class="btn-back" href="{{ url_for('customer.home') }}">{{ icon('back', 20) }}Back</a>
   <h1>My profile</h1>
 </div>
 
-<div class="panel-grid">
+<div class="profile-grid">
   <section class="panel">
-    <h2>Account</h2>
+    <h2 class="section-title">Account</h2>
     <p class="big">{{ current_user.name }}</p>
     <p class="muted">{{ current_user.email }}</p>
   </section>
 
   <section class="panel">
-    <h2>NFC card</h2>
+    <h2 class="section-title">NFC card</h2>
     {% if linked_card %}
-      <p class="big">📶 {{ linked_card.uid }}</p>
+      <p class="big num">{{ linked_card.uid }}</p>
       <form method="post" action="{{ url_for('auth.unlink_card') }}">
         <button type="submit" class="btn btn-small">Unlink card</button>
       </form>
@@ -40,25 +40,25 @@
       </form>
     {% endif %}
   </section>
-
-  <section class="panel panel-wide">
-    <h2>Order history</h2>
-    {% if orders %}
-      {# FR-05, FR-06: every order with its customization details #}
-      <ul class="order-list">
-        {% for order in orders %}
-          <li class="order-row">
-            <span class="order-date">{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
-            <span class="order-drink">{{ order.drink.icon }} {{ order.drink.name }}
-              <span class="muted">{{ order.customizations.get('summary', '') }}</span></span>
-            <span class="order-price">{{ order.amount_cents|euro }}</span>
-            <span class="status status-{{ order.status }}">{{ order.status|capitalize }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="muted">No orders yet.</p>
-    {% endif %}
-  </section>
 </div>
+
+<section class="panel">
+  <h2 class="section-title">Order history</h2>
+  {% if orders %}
+    {# FR-05, FR-06: every order with its customization details #}
+    <ul class="order-list">
+      {% for order in orders %}
+        <li class="order-row">
+          <span class="order-date">{{ order.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+          <span class="order-drink">{{ order.drink.name }}
+            <span class="muted">{{ order.customizations.get('summary', '') }}</span></span>
+          <span class="order-price">{{ order.amount_cents|euro }}</span>
+          <span class="status status-{{ order.status }}">{{ order.status|capitalize }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No orders yet.</p>
+  {% endif %}
+</section>
 {% endblock %}

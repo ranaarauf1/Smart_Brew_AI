@@ -4,18 +4,20 @@
 
 {% block content %}
 <div class="page-header">
-  <a class="btn-back" href="{{ url_for('customer.home') }}">‹ Back</a>
+  <a class="btn-back" href="{{ url_for('customer.home') }}">{{ icon('back', 20) }}Back</a>
   <h1>Menu</h1>
-  <span class="menu-context muted">{{ weather_text }} · {{ period|capitalize }}</span>
-  {% if current_user %}
-    <a class="btn-back btn-shortcut" href="{{ url_for('customer.recipe_list') }}">⭐ My recipes</a>
-  {% endif %}
+  <div class="page-aside">
+    <span class="menu-context">{{ weather_text }} · {{ period|capitalize }}</span>
+    {% if current_user %}
+      <a class="btn btn-small" href="{{ url_for('customer.recipe_list') }}">{{ icon('star', 18) }}My recipes</a>
+    {% endif %}
+  </div>
 </div>
 
 {% if out_of_service %}
   {# Feature 10: no new drinks while a waste bin is full #}
-  <section class="welcome out-of-service">
-    <span class="detail-icon">⛔</span>
+  <section class="out-of-service">
+    {{ icon('stop', 56) }}
     <h1>Out of service</h1>
     <p class="subtitle">{{ out_of_service }}</p>
   </section>
@@ -27,7 +29,7 @@
   <nav class="tabs" aria-label="Drink categories">
     <a class="tab{% if selected is none %} tab-active{% endif %}"
        href="{{ url_for('customer.menu') }}"
-       {% if selected is none %}aria-current="page"{% endif %}>⭐ For you</a>
+       {% if selected is none %}aria-current="page"{% endif %}>{{ icon('star', 18) }}For you</a>
     {% for category in categories %}
       <a class="tab{% if selected and category.id == selected.id %} tab-active{% endif %}"
          href="{{ url_for('customer.menu', category=category.id) }}"
@@ -44,8 +46,8 @@
         {% set drink = entry.drink %}
         {% if entry.available %}
           <a class="drink-card{% if entry.top %} drink-top{% endif %}" href="{{ url_for('customer.drink_detail', drink_id=drink.id) }}">
-            {% if entry.top %}<span class="top-badge">⭐ Top pick</span>{% endif %}
-            <span class="drink-icon">{{ drink.icon }}</span>
+            {% if entry.top %}<span class="top-badge">Top pick</span>{% endif %}
+            {{ drink_icon(drink) }}
             <span class="drink-name">{{ drink.name }}</span>
             <span class="drink-price">{{ drink.base_price_cents|euro }}</span>
             {% if entry.top and entry.rec.reason %}<span class="top-reason">{{ entry.rec.reason }}</span>{% endif %}
@@ -53,7 +55,7 @@
         {% else %}
           {# FR-14, FR-26–28: base ingredient below threshold, cannot be opened #}
           <div class="drink-card drink-unavailable" aria-disabled="true">
-            <span class="drink-icon">{{ drink.icon }}</span>
+            {{ drink_icon(drink) }}
             <span class="drink-name">{{ drink.name }}</span>
             <span class="unavailable-label">Not available</span>
           </div>

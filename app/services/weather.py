@@ -9,7 +9,6 @@ from app.models import SystemState
 from app.services import connectivity
 
 CONDITIONS = ("sunny", "cloudy", "rainy", "snowy")
-CONDITION_ICONS = {"sunny": "☀️", "cloudy": "☁️", "rainy": "🌧️", "snowy": "❄️"}
 MIN_TEMP_C = -20
 MAX_TEMP_C = 45
 
@@ -79,7 +78,7 @@ def get_weather(now):
 
 def describe(weather):
     """
-    Purpose: Formats weather for display, e.g. "☁️ Cloudy, 12°C".
+    Purpose: Formats weather for display, e.g. "Cloudy, 12°C".
 
     Args:
         weather (dict | None): Result of get_weather(), or None.
@@ -89,8 +88,7 @@ def describe(weather):
     """
     if weather is None:
         return "Weather unavailable"
-    icon = CONDITION_ICONS.get(weather["condition"], "")
-    return f"{icon} {weather['condition'].capitalize()}, {round(weather['temperature_c'])}°C".strip()
+    return f"{weather['condition'].capitalize()}, {round(weather['temperature_c'])}°C"
 
 
 def update_settings(mode, condition, temperature, online):

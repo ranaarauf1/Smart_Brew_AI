@@ -1,0 +1,20 @@
+{# Shared document skeleton for the three looks: machine screen (base.html),
+   Simulation tool (sim_base.html) and service mode (admin_base.html). #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SmartBrew AI{% endblock %}</title>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/atkinson-hyperlegible-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/atkinson-hyperlegible-latin-700-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+  {% block legacy_styles %}<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">{% endblock %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/core.css') }}">
+  {% block look_styles %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  {% block body %}{% endblock %}
+  {% block look_scripts %}{% endblock %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

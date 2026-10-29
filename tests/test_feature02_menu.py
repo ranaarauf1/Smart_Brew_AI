@@ -127,7 +127,7 @@ def test_menu_shows_drink_icons(seeded_app, seeded_client):
         f"/menu?category={category_id(seeded_app, 'Iced Drinks')}"
     ).get_data(as_text=True)
 
-    assert html.count('class="drink-icon">🧊') == 2
+    assert html.count('class="drink-icon" data-icon="iced"') == 2
 
 
 def test_menu_unknown_category_returns_404(seeded_client):

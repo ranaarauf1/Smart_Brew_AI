@@ -830,7 +830,7 @@ def test_simulation_time_override(seeded_app, seeded_client):
     page = seeded_client.get("/").get_data(as_text=True)
     with seeded_app.app_context():
         assert clock.now().strftime("%H:%M") == "20:15"
-    assert "20:15 <small>SIM</small>" in page
+    assert "20:15 <small>simulated</small>" in page
 
     seeded_client.post("/simulation/time", data={"action": "real"})
     with seeded_app.app_context():

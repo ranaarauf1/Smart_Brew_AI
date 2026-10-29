@@ -1,11 +1,10 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" %}
 
 {% block title %}Admin dashboard – SmartBrew AI{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>🔧 Admin dashboard</h1>
-  <span class="muted">Signed in by {{ admin_actor }}</span>
+  <h1>Admin dashboard</h1>
 </div>
 
 {% set tab_labels = {'ingredients': 'Ingredients', 'bins': 'Waste bins', 'errors': 'Errors (' ~ active_errors|length ~ ')', 'events': 'Event log', 'audit': 'Audit log'} %}

@@ -1,0 +1,47 @@
+{% extends "_layout.html" %}
+{# Simulation tool look: a plain testing tool, clearly not part of the machine. #}
+
+{% block look_styles %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sim.css') }}">
+{% endblock %}
+
+{% block body_class %}look-sim{% endblock %}
+
+{% block body %}
+<header class="sim-header">
+  <div class="sim-header-title">
+    {{ icon('sliders', 24) }}
+    <div>
+      <p class="sim-name">Simulation tool</p>
+      <p class="sim-note">Stands in for the machine's hardware and outside services. Not part of the machine.</p>
+    </div>
+  </div>
+  <div class="sim-header-actions">
+    {% if current_user %}
+      {# Keeps the customer session alive while testing (NFR-14) #}
+      <span class="sim-session">Customer: {{ current_user.name }} · logout in
+        <span id="countdown" class="num" data-timeout="{{ session_timeout }}">{{ session_timeout }}</span> s</span>
+      <form id="logout-form" class="inline-form" method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="reason" value="manual">
+        <button type="submit" class="btn btn-small">Log out</button>
+      </form>
+    {% endif %}
+    <a class="btn btn-small" href="{{ url_for('customer.home') }}">{{ icon('back', 18) }}Back to the machine</a>
+  </div>
+</header>
+
+{% if connectivity and connectivity.offline %}
+  <p class="sim-state" role="status">{{ icon('offline', 20) }}Offline mode – basic ordering is active on the machine.</p>
+{% endif %}
+
+<main class="sim-main content">
+  {% include "_flashes.html" %}
+  {% block content %}{% endblock %}
+</main>
+{% endblock %}
+
+{% block look_scripts %}
+  {% if current_user %}
+    <script src="{{ url_for('static', filename='js/session.js') }}" data-countdown-id="countdown" data-form-id="logout-form" data-keepalive-url="{{ url_for('auth.keepalive') }}" data-home-url="{{ url_for('customer.home') }}"></script>
+  {% endif %}
+{% endblock %}

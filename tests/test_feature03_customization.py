@@ -582,3 +582,56 @@ def test_preview_only_with_post(seeded_app, seeded_client):
         None
     """
     assert seeded_client.get(f"/api/drinks/{drink_id(seeded_app, 'Latte')}/preview").status_code == 405
+
+
+# ---------------------------------------------------------------------------
+# Cup picture data (presentation of FR-13)
+# ---------------------------------------------------------------------------
+
+
+def test_preview_describes_cup_layers(seeded_app, seeded_client):
+    """
+    Purpose: The preview includes the cup picture: a Latte with oat milk,
+        an extra shot and 2 vanilla shots has 20 ml syrup, 60 ml espresso,
+        and 220 ml oat milk split into 187 ml milk and 33 ml foam (15 %).
+
+    Args:
+        seeded_app (Flask): Seeded test application.
+        seeded_client (FlaskClient): Client for it.
+
+    Returns:
+        None
+    """
+    data = preview(seeded_client, seeded_app, "Latte", milk="Oat milk", strength="Extra shot",
+                   syrup="Vanilla", syrup_shots=2).get_json()
+
+    cup_data = data["cup"]
+    assert cup_data["vessel"] == "cup" and cup_data["capacity_ml"] == 400
+    assert [(l["kind"], l["label"], l["ml"]) for l in cup_data["layers"]] == [
+        ("syrup", "Vanilla syrup", 20), ("espresso", "Espresso", 60),
+        ("milk", "Oat milk", 187), ("foam", "Foam", 33),
+    ]
+    assert cup_data["steam"] == 2 and cup_data["ice"] is False
+    assert cup_data["description"] == "Cup: 20 ml vanilla syrup, 60 ml espresso, 187 ml oat milk, 33 ml foam"
+
+
+def test_iced_drink_is_a_glass_with_ice_and_no_steam(seeded_app, seeded_client):
+    """
+    Purpose: An iced drink is drawn as a glass with ice, without foam or steam;
+        the customize page draws it on first load (works without JavaScript).
+
+    Args:
+        seeded_app (Flask): Seeded test application.
+        seeded_client (FlaskClient): Client for it.
+
+    Returns:
+        None
+    """
+    data = preview(seeded_client, seeded_app, "Iced Latte").get_json()
+    page = seeded_client.get(f"/drink/{drink_id(seeded_app, 'Iced Latte')}/customize").get_data(as_text=True)
+
+    assert data["cup"]["vessel"] == "glass" and data["cup"]["ice"] is True
+    assert data["cup"]["steam"] == 0
+    assert [l["kind"] for l in data["cup"]["layers"]] == ["espresso", "milk"]
+    assert 'id="cup-picture" class="cup-picture is-glass"' in page
+    assert 'aria-label="Glass: 60 ml espresso, 180 ml whole milk, with ice"' in page

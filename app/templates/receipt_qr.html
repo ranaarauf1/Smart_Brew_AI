@@ -4,12 +4,12 @@
 
 {% block content %}
 <div class="page-header">
-  <a class="btn-back" href="{{ url_for('customer.view_order', order_id=order.id) }}">‹ Back</a>
-  <h1>🧾 Your receipt</h1>
+  <a class="btn-back" href="{{ url_for('customer.view_order', order_id=order.id) }}">{{ icon('back', 20) }}Back to your order</a>
+  <h1>Your receipt</h1>
 </div>
 
 <div class="qr-layout">
-  <div class="panel qr-panel">
+  <div class="qr-panel">
     <img class="qr-image" src="{{ qr.image }}" alt="QR code receipt">
     {% if qr.mode == 'link' %}
       <p class="muted">Scan to open your receipt.</p>
@@ -19,7 +19,7 @@
       <p class="muted">Offline: the QR code contains the full receipt.</p>
     {% endif %}
   </div>
-  <div class="panel">
+  <div>
     {% include "_receipt_details.html" %}
   </div>
 </div>

@@ -105,21 +105,21 @@ DRINKS = {
     "Espresso Classics": [
         {
             "name": "Espresso",
-            "icon": "☕",
+            "icon": "espresso",
             "description": "A short, intense shot of espresso.",
             "price": 220, "calories": 3, "sugar": 0, "fat": 0.2, "protein": 0.1, "caffeine": 63,
             "recipe": {"Coffee beans": 9, "Water": 30, "Cups": 1},
         },
         {
             "name": "Doppio",
-            "icon": "☕",
+            "icon": "espresso",
             "description": "A double shot of espresso.",
             "price": 280, "calories": 5, "sugar": 0, "fat": 0.4, "protein": 0.2, "caffeine": 126,
             "recipe": {"Coffee beans": 18, "Water": 60, "Cups": 1},
         },
         {
             "name": "Americano",
-            "icon": "☕",
+            "icon": "espresso",
             "description": "Double espresso topped up with hot water.",
             "price": 260, "calories": 5, "sugar": 0, "fat": 0.3, "protein": 0.3, "caffeine": 126,
             "recipe": {"Coffee beans": 18, "Water": 200, "Cups": 1},
@@ -128,28 +128,28 @@ DRINKS = {
     "Milk Coffees": [
         {
             "name": "Cappuccino",
-            "icon": "☕",
+            "icon": "milk",
             "description": "Espresso with steamed milk and a thick layer of foam.",
             "price": 330, "calories": 110, "sugar": 9, "fat": 6, "protein": 6, "caffeine": 126,
             "recipe": {"Coffee beans": 18, "Water": 60, "Whole milk": 150, "Cups": 1},
         },
         {
             "name": "Latte",
-            "icon": "🥛",
+            "icon": "milk",
             "description": "Espresso with plenty of steamed milk.",
             "price": 350, "calories": 150, "sugar": 13, "fat": 8, "protein": 8, "caffeine": 126,
             "recipe": {"Coffee beans": 18, "Water": 60, "Whole milk": 220, "Cups": 1},
         },
         {
             "name": "Flat White",
-            "icon": "🥛",
+            "icon": "milk",
             "description": "Strong espresso with silky microfoam.",
             "price": 340, "calories": 120, "sugar": 10, "fat": 6.5, "protein": 6.5, "caffeine": 130,
             "recipe": {"Coffee beans": 18, "Water": 40, "Whole milk": 130, "Cups": 1},
         },
         {
             "name": "Mocha",
-            "icon": "🍫",
+            "icon": "mug",
             "description": "Espresso, chocolate and steamed milk.",
             "price": 390, "calories": 250, "sugar": 28, "fat": 10, "protein": 9, "caffeine": 130,
             "recipe": {"Coffee beans": 18, "Water": 60, "Whole milk": 180,
@@ -159,21 +159,21 @@ DRINKS = {
     "Tea & Chocolate": [
         {
             "name": "Hot Chocolate",
-            "icon": "🍫",
+            "icon": "mug",
             "description": "Rich chocolate with steamed milk.",
             "price": 320, "calories": 230, "sugar": 30, "fat": 9, "protein": 8, "caffeine": 10,
             "recipe": {"Chocolate powder": 30, "Whole milk": 220, "Cups": 1},
         },
         {
             "name": "Chai Latte",
-            "icon": "🍵",
+            "icon": "tea",
             "description": "Spiced black tea with steamed milk.",
             "price": 340, "calories": 190, "sugar": 26, "fat": 5, "protein": 6, "caffeine": 50,
             "recipe": {"Chai concentrate": 40, "Whole milk": 200, "Cups": 1},
         },
         {
             "name": "Green Tea",
-            "icon": "🍵",
+            "icon": "tea",
             "description": "Light and refreshing green tea.",
             "price": 240, "calories": 2, "sugar": 0, "fat": 0, "protein": 0.3, "caffeine": 30,
             "recipe": {"Green tea leaves": 2, "Water": 250, "Cups": 1},
@@ -182,7 +182,7 @@ DRINKS = {
     "Iced Drinks": [
         {
             "name": "Iced Latte",
-            "icon": "🧊",
+            "icon": "iced",
             "description": "Espresso and cold milk over ice.",
             "price": 380, "calories": 130, "sugar": 11, "fat": 7, "protein": 7, "caffeine": 126,
             "serving": Drink.SERVING_ICED,
@@ -190,7 +190,7 @@ DRINKS = {
         },
         {
             "name": "Cold Brew",
-            "icon": "🧊",
+            "icon": "iced",
             "description": "Slow-steeped coffee served over ice.",
             "price": 360, "calories": 5, "sugar": 0, "fat": 0, "protein": 0.3, "caffeine": 200,
             "serving": Drink.SERVING_ICED,
