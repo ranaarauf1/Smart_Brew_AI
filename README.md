@@ -116,8 +116,16 @@ The macOS/Linux commands in 3.2 are standard but were not tested on a Mac.
 ### 3.1 Build and run with Docker (recommended)
 
 1. Install Docker Desktop (Windows/macOS) or Docker Engine with Compose
-   (Linux) and start it.
-2. Open a terminal in the project folder.
+   (Linux) and start it. You also need Git.
+2. Get the code and open the project folder:
+
+   ```powershell
+   git clone https://github.com/ranaarauf1/Smart_Brew_AI.git
+   cd Smart_Brew_AI
+   ```
+
+   (If you download the ZIP from GitHub instead, the folder is called
+   `Smart_Brew_AI-main`; open a terminal in that folder.)
 3. Build and start the app:
 
    ```powershell
@@ -128,6 +136,12 @@ The macOS/Linux commands in 3.2 are standard but were not tested on a Mac.
 
 On the first start the database is created and filled with demo data
 automatically. The data is kept in a Docker volume, so it survives restarts.
+
+Docker Compose names things after the folder: with the folder
+`Smart_Brew_AI` the container is `smart_brew_ai-smartbrew-1` and the data
+volume is `smart_brew_ai_smartbrew-data`. You don't need these names – all
+commands below use the service name `smartbrew` and work from any folder
+name.
 
 | Task | Command |
 |---|---|
@@ -141,11 +155,13 @@ in `docker-compose.yml` and open http://localhost:5050.
 
 ### 3.2 Build and run locally
 
-You need Python 3.12.
+You need Python 3.12 and Git.
 
 **Windows (PowerShell)**
 
 ```powershell
+git clone https://github.com/ranaarauf1/Smart_Brew_AI.git
+cd Smart_Brew_AI
 py -3.12 -m venv .venv
 .\.venv\Scripts\python -m pip install -r requirements.txt
 .\.venv\Scripts\python seed.py
@@ -155,6 +171,8 @@ py -3.12 -m venv .venv
 **macOS / Linux**
 
 ```bash
+git clone https://github.com/ranaarauf1/Smart_Brew_AI.git
+cd Smart_Brew_AI
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python seed.py
@@ -170,7 +188,8 @@ Then open **http://127.0.0.1:5000**.
 
 ### 3.3 Run the tests
 
-The tests use an in-memory database and a temporary email folder, so they
+Run these commands in the `Smart_Brew_AI` folder. The tests use an
+in-memory database and a temporary email folder, so they
 never change the demo data.
 
 **Locally (Windows PowerShell)**
@@ -628,24 +647,25 @@ Events in service mode (Errors tab and event log), each with a next action:
 ## 7. Project Structure
 
 ```
-app/
-  __init__.py        app factory (configuration, blueprints)
-  models.py          database models
-  ui.py              SVG icons and the greeting for templates
-  routes/            blueprints: auth, customer, admin, simulation
-  services/          business logic: inventory, customization, cup,
-                     recommendations, payments, offline, receipts,
-                     maintenance, admin, weather, clock, …
-  templates/         Jinja2 templates (machine, simulation tool, service mode)
-  static/css|js|fonts/
-data/                SQLite database and email outbox (not in git)
-docs/
-  screenshots/       screenshots for this README and the report
-  llm-conversations/ the full Claude Code conversations
-tests/               one test file per feature (307 tests)
-seed.py              creates the demo data
-run.py               starts the app
-Dockerfile, docker-compose.yml, requirements.txt
+Smart_Brew_AI/
+  app/
+    __init__.py        app factory (configuration, blueprints)
+    models.py          database models
+    ui.py              SVG icons and the greeting for templates
+    routes/            blueprints: auth, customer, admin, simulation
+    services/          business logic: inventory, customization, cup,
+                       recommendations, payments, offline, receipts,
+                       maintenance, admin, weather, clock, …
+    templates/         Jinja2 templates (machine, simulation tool, service mode)
+    static/css|js|fonts/
+  data/                SQLite database and email outbox (not in git)
+  docs/
+    screenshots/       screenshots for this README and the report
+    llm-conversations/ the full Claude Code conversations
+  tests/               one test file per feature (307 tests)
+  seed.py              creates the demo data
+  run.py               starts the app
+  Dockerfile, docker-compose.yml, requirements.txt
 ```
 
 ---
